@@ -199,13 +199,20 @@
             Мышь — осмотр&nbsp;&nbsp;|&nbsp;&nbsp;ESC — курсор
         </div>
 
-        <script src="https://unpkg.com/three@0.150.0/build/three.min.js"></script>
-        <script src="https://unpkg.com/three@0.150.0/examples/js/postprocessing/EffectComposer.js"></script>
-        <script src="https://unpkg.com/three@0.150.0/examples/js/postprocessing/RenderPass.js"></script>
-        <script src="https://unpkg.com/three@0.150.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
-        <script src="https://unpkg.com/three@0.150.0/examples/js/postprocessing/ShaderPass.js"></script>
-        <script src="https://unpkg.com/three@0.150.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
-        <script src="https://unpkg.com/three@0.150.0/examples/js/shaders/CopyShader.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+        <script>
+            // If Three.js failed to load, show error immediately
+            if (typeof THREE === 'undefined') {
+                document.getElementById('loading').innerHTML = '<span style="color:#ff3344">ERROR: Three.js CDN unreachable. Check internet.</span>';
+                throw new Error('Three.js CDN failed');
+            }
+        </script>
+        <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
 
         <script>
             try {
@@ -260,7 +267,7 @@
                 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
                 renderer.toneMapping = THREE.ACESFilmicToneMapping;
                 renderer.toneMappingExposure = 1.0;
-                renderer.outputColorSpace = THREE.SRGBColorSpace;
+                renderer.outputEncoding = THREE.sRGBEncoding;
                 document.body.appendChild(renderer.domElement);
 
                 // ==================== POST-PROCESSING ====================
@@ -904,11 +911,9 @@
                 // ==================== ANIMATION ====================
                 let prevT = performance.now();
 
-                // Show UI after load
-                setTimeout(() => {
-                    document.getElementById("loading").style.display = "none";
-                    document.getElementById("info").style.display = "block";
-                }, 1200);
+                // Hide loading screen immediately — everything is ready
+                document.getElementById("loading").style.display = "none";
+                document.getElementById("info").style.display = "block";
 
                 // Start position
                 camera.position.set(
