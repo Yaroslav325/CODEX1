@@ -1,0 +1,574 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>City of Text - Hackers 1995</title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+            body {
+                overflow: hidden;
+                background: #000;
+                font-family: "Courier New", monospace;
+            }
+            #info {
+                position: absolute;
+                top: 10px;
+                left: 10px;
+                color: #00ff00;
+                font-size: 14px;
+                z-index: 100;
+                text-shadow: 0 0 10px #00ff00;
+                background: rgba(0, 0, 0, 0.7);
+                padding: 10px;
+                border: 1px solid #00ff00;
+            }
+            #overlay {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                pointer-events: none;
+                background: repeating-linear-gradient(
+                    0deg,
+                    rgba(0, 0, 0, 0.1) 0px,
+                    rgba(0, 0, 0, 0.1) 1px,
+                    transparent 1px,
+                    transparent 2px
+                );
+                z-index: 50;
+            }
+            #crosshair {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                color: #00ff00;
+                font-size: 24px;
+                z-index: 100;
+                text-shadow: 0 0 5px #00ff00;
+            }
+            canvas {
+                display: block;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="info">
+            WASD / Стрелки - движение<br />
+            Мышь - осмотр<br />
+            Клик - захват курсора<br />
+            ESC - освободить курсор
+        </div>
+        <div id="overlay"></div>
+        <div id="crosshair">+</div>
+
+        <script src="https://unpkg.com/three@0.128.0/build/three.min.js"></script>
+        <script>
+            try {
+                if (typeof THREE === "undefined") {
+                    throw new Error("Three.js не загружен");
+                }
+
+                // ============ SCENE SETUP ============
+                const scene = new THREE.Scene();
+                scene.background = new THREE.Color(0x000008);
+                scene.fog = new THREE.FogExp2(0x000008, 0.015);
+
+                const camera = new THREE.PerspectiveCamera(
+                    75,
+                    window.innerWidth / window.innerHeight,
+                    0.1,
+                    1000,
+                );
+                camera.position.set(0, 2, 0);
+
+                const renderer = new THREE.WebGLRenderer({ antialias: true });
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                renderer.setPixelRatio(window.devicePixelRatio);
+                document.body.appendChild(renderer.domElement);
+
+                // ============ MAZE GENERATION ============
+                const mazeSize = 21;
+                const cellSize = 4;
+                const wallHeight = 8;
+
+                // Generate maze using iterative backtracking (no stack overflow)
+                function generateMaze(width, height) {
+                    const maze = [];
+                    for (let i = 0; i < height; i++) {
+                        maze[i] = [];
+                        for (let j = 0; j < width; j++) {
+                            maze[i][j] = 1;
+                        }
+                    }
+
+                    const stack = [];
+                    const startX = 1;
+                    const startY = 1;
+                    maze[startY][startX] = 0;
+                    stack.push([startX, startY]);
+
+                    while (stack.length > 0) {
+                        const [x, y] = stack[stack.length - 1];
+                        const directions = [
+                            [0, -2],
+                            [0, 2],
+                            [-2, 0],
+                            [2, 0],
+                        ];
+
+                        // Shuffle directions
+                        for (let i = directions.length - 1; i > 0; i--) {
+                            const j = Math.floor(Math.random() * (i + 1));
+                            [directions[i], directions[j]] = [
+                                directions[j],
+                                directions[i],
+                            ];
+                        }
+
+                        let found = false;
+                        for (const [dx, dy] of directions) {
+                            const nx = x + dx;
+                            const ny = y + dy;
+                            if (
+                                nx > 0 &&
+                                nx < width - 1 &&
+                                ny > 0 &&
+                                ny < height - 1 &&
+                                maze[ny][nx] === 1
+                            ) {
+                                maze[y + dy / 2][x + dx / 2] = 0;
+                                maze[ny][nx] = 0;
+                                stack.push([nx, ny]);
+                                found = true;
+                                break;
+                            }
+                        }
+
+                        if (!found) {
+                            stack.pop();
+                        }
+                    }
+
+                    return maze;
+                }
+
+                const maze = generateMaze(mazeSize, mazeSize);
+
+                // ============ TEXT TEXTURE GENERATION ============
+                const hackerChars =
+                    "01アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン{}[]<>=/\\#$%&@!?";
+
+                function createTextTexture(width, height, color) {
+                    const canvas = document.createElement("canvas");
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext("2d");
+
+                    ctx.fillStyle = "#000000";
+                    ctx.fillRect(0, 0, width, height);
+
+                    ctx.font = "14px Courier New";
+                    ctx.fillStyle = color;
+
+                    for (let y = 14; y < height; y += 16) {
+                        for (let x = 0; x < width; x += 10) {
+                            if (Math.random() > 0.3) {
+                                const char =
+                                    hackerChars[
+                                        Math.floor(
+                                            Math.random() * hackerChars.length,
+                                        )
+                                    ];
+                                ctx.globalAlpha = 0.3 + Math.random() * 0.7;
+                                ctx.fillText(char, x, y);
+                            }
+                        }
+                    }
+
+                    const texture = new THREE.CanvasTexture(canvas);
+                    texture.wrapS = THREE.RepeatWrapping;
+                    texture.wrapT = THREE.RepeatWrapping;
+                    return texture;
+                }
+
+                // ============ MATERIALS ============
+                const wallColors = [
+                    "#00ff00",
+                    "#00ffff",
+                    "#ff00ff",
+                    "#ffff00",
+                    "#00ff88",
+                ];
+                const wallMaterials = wallColors.map((color) => {
+                    const texture = createTextTexture(256, 512, color);
+                    return new THREE.MeshBasicMaterial({
+                        map: texture,
+                        transparent: true,
+                        opacity: 0.9,
+                        side: THREE.DoubleSide,
+                    });
+                });
+
+                // ============ BUILD MAZE ============
+                const walls = [];
+                const wallGeometry = new THREE.BoxGeometry(
+                    cellSize,
+                    wallHeight,
+                    cellSize,
+                );
+
+                for (let z = 0; z < mazeSize; z++) {
+                    for (let x = 0; x < mazeSize; x++) {
+                        if (maze[z][x] === 1) {
+                            const material =
+                                wallMaterials[
+                                    Math.floor(
+                                        Math.random() * wallMaterials.length,
+                                    )
+                                ];
+                            const wall = new THREE.Mesh(wallGeometry, material);
+                            wall.position.set(
+                                (x - mazeSize / 2) * cellSize,
+                                wallHeight / 2,
+                                (z - mazeSize / 2) * cellSize,
+                            );
+                            scene.add(wall);
+                            walls.push(wall);
+                        }
+                    }
+                }
+
+                // ============ FLOATING DATA STREAMS ============
+                const dataStreams = [];
+
+                function createDataStream() {
+                    const canvas = document.createElement("canvas");
+                    canvas.width = 32;
+                    canvas.height = 256;
+                    const ctx = canvas.getContext("2d");
+
+                    ctx.fillStyle = "#000";
+                    ctx.fillRect(0, 0, 32, 256);
+                    ctx.font = "12px Courier New";
+                    ctx.fillStyle = "#00ff00";
+
+                    for (let y = 12; y < 256; y += 14) {
+                        const char =
+                            hackerChars[
+                                Math.floor(Math.random() * hackerChars.length)
+                            ];
+                        ctx.globalAlpha = Math.random();
+                        ctx.fillText(char, 8, y);
+                    }
+
+                    const texture = new THREE.CanvasTexture(canvas);
+                    const geometry = new THREE.PlaneGeometry(0.5, 4);
+                    const material = new THREE.MeshBasicMaterial({
+                        map: texture,
+                        transparent: true,
+                        opacity: 0.8,
+                        side: THREE.DoubleSide,
+                    });
+
+                    const stream = new THREE.Mesh(geometry, material);
+                    stream.position.set(
+                        (Math.random() - 0.5) * mazeSize * cellSize,
+                        Math.random() * 20 + 5,
+                        (Math.random() - 0.5) * mazeSize * cellSize,
+                    );
+                    stream.userData = {
+                        speed: 0.02 + Math.random() * 0.05,
+                        rotSpeed: (Math.random() - 0.5) * 0.02,
+                    };
+
+                    return stream;
+                }
+
+                for (let i = 0; i < 100; i++) {
+                    const stream = createDataStream();
+                    scene.add(stream);
+                    dataStreams.push(stream);
+                }
+
+                // ============ FLOOR GRID ============
+                const floorSize = mazeSize * cellSize * 1.5;
+                const floorGeometry = new THREE.PlaneGeometry(
+                    floorSize,
+                    floorSize,
+                    50,
+                    50,
+                );
+                const floorMaterial = new THREE.MeshBasicMaterial({
+                    color: 0x001100,
+                    wireframe: true,
+                    transparent: true,
+                    opacity: 0.3,
+                });
+                const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+                floor.rotation.x = -Math.PI / 2;
+                floor.position.y = 0;
+                scene.add(floor);
+
+                // Grid lines
+                const gridHelper = new THREE.GridHelper(
+                    floorSize,
+                    50,
+                    0x004400,
+                    0x002200,
+                );
+                scene.add(gridHelper);
+
+                // ============ TOWER STRUCTURES ============
+                for (let i = 0; i < 20; i++) {
+                    const height = 15 + Math.random() * 30;
+                    const towerGeo = new THREE.BoxGeometry(3, height, 3);
+                    const towerMat = new THREE.MeshBasicMaterial({
+                        map: createTextTexture(
+                            128,
+                            512,
+                            wallColors[
+                                Math.floor(Math.random() * wallColors.length)
+                            ],
+                        ),
+                        transparent: true,
+                        opacity: 0.7,
+                    });
+                    const tower = new THREE.Mesh(towerGeo, towerMat);
+                    tower.position.set(
+                        (Math.random() - 0.5) * floorSize * 0.8,
+                        height / 2,
+                        (Math.random() - 0.5) * floorSize * 0.8,
+                    );
+                    scene.add(tower);
+                }
+
+                // ============ PARTICLE SYSTEM ============
+                const particleCount = 500;
+                const particleGeometry = new THREE.BufferGeometry();
+                const positions = new Float32Array(particleCount * 3);
+                const colors = new Float32Array(particleCount * 3);
+
+                for (let i = 0; i < particleCount; i++) {
+                    positions[i * 3] = (Math.random() - 0.5) * floorSize;
+                    positions[i * 3 + 1] = Math.random() * 30;
+                    positions[i * 3 + 2] = (Math.random() - 0.5) * floorSize;
+
+                    const color = new THREE.Color(
+                        wallColors[
+                            Math.floor(Math.random() * wallColors.length)
+                        ],
+                    );
+                    colors[i * 3] = color.r;
+                    colors[i * 3 + 1] = color.g;
+                    colors[i * 3 + 2] = color.b;
+                }
+
+                particleGeometry.setAttribute(
+                    "position",
+                    new THREE.BufferAttribute(positions, 3),
+                );
+                particleGeometry.setAttribute(
+                    "color",
+                    new THREE.BufferAttribute(colors, 3),
+                );
+
+                const particleMaterial = new THREE.PointsMaterial({
+                    size: 0.3,
+                    vertexColors: true,
+                    transparent: true,
+                    opacity: 0.6,
+                });
+
+                const particles = new THREE.Points(
+                    particleGeometry,
+                    particleMaterial,
+                );
+                scene.add(particles);
+
+                // ============ CONTROLS ============
+                const keys = {};
+                const velocity = new THREE.Vector3();
+                const direction = new THREE.Vector3();
+                let yaw = 0;
+                let pitch = 0;
+                const moveSpeed = 0.25;
+                const playerRadius = 0.5;
+
+                window.addEventListener("keydown", function (e) {
+                    keys[e.code] = true;
+                    if (
+                        [
+                            "KeyW",
+                            "KeyA",
+                            "KeyS",
+                            "KeyD",
+                            "ArrowUp",
+                            "ArrowDown",
+                            "ArrowLeft",
+                            "ArrowRight",
+                        ].includes(e.code)
+                    ) {
+                        e.preventDefault();
+                    }
+                });
+                window.addEventListener("keyup", function (e) {
+                    keys[e.code] = false;
+                });
+
+                document.body.addEventListener("click", () => {
+                    renderer.domElement.requestPointerLock();
+                });
+
+                document.addEventListener("mousemove", (e) => {
+                    if (document.pointerLockElement === renderer.domElement) {
+                        yaw -= e.movementX * 0.002;
+                        pitch -= e.movementY * 0.002;
+                        pitch = Math.max(
+                            -Math.PI / 2,
+                            Math.min(Math.PI / 2, pitch),
+                        );
+                    }
+                });
+
+                // ============ COLLISION DETECTION ============
+                function checkCollision(newPos) {
+                    const gridX = Math.floor(
+                        (newPos.x + (mazeSize * cellSize) / 2) / cellSize,
+                    );
+                    const gridZ = Math.floor(
+                        (newPos.z + (mazeSize * cellSize) / 2) / cellSize,
+                    );
+
+                    for (let dz = -1; dz <= 1; dz++) {
+                        for (let dx = -1; dx <= 1; dx++) {
+                            const checkX = gridX + dx;
+                            const checkZ = gridZ + dz;
+
+                            if (
+                                checkX >= 0 &&
+                                checkX < mazeSize &&
+                                checkZ >= 0 &&
+                                checkZ < mazeSize
+                            ) {
+                                if (maze[checkZ][checkX] === 1) {
+                                    const wallX =
+                                        (checkX - mazeSize / 2) * cellSize;
+                                    const wallZ =
+                                        (checkZ - mazeSize / 2) * cellSize;
+
+                                    const halfCell = cellSize / 2;
+                                    if (
+                                        newPos.x >
+                                            wallX - halfCell - playerRadius &&
+                                        newPos.x <
+                                            wallX + halfCell + playerRadius &&
+                                        newPos.z >
+                                            wallZ - halfCell - playerRadius &&
+                                        newPos.z <
+                                            wallZ + halfCell + playerRadius
+                                    ) {
+                                        return true;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    return false;
+                }
+
+                // ============ ANIMATION LOOP ============
+                function animate() {
+                    requestAnimationFrame(animate);
+
+                    // Update camera rotation
+                    camera.rotation.order = "YXZ";
+                    camera.rotation.y = yaw;
+                    camera.rotation.x = pitch;
+
+                    // Movement
+                    direction.set(0, 0, 0);
+
+                    if (keys["KeyW"] || keys["ArrowUp"]) direction.z -= 1;
+                    if (keys["KeyS"] || keys["ArrowDown"]) direction.z += 1;
+                    if (keys["KeyA"] || keys["ArrowLeft"]) direction.x -= 1;
+                    if (keys["KeyD"] || keys["ArrowRight"]) direction.x += 1;
+
+                    if (direction.length() > 0) {
+                        direction.normalize();
+                        direction.applyAxisAngle(
+                            new THREE.Vector3(0, 1, 0),
+                            yaw,
+                        );
+
+                        // Direct movement (collision disabled for now)
+                        camera.position.x += direction.x * moveSpeed;
+                        camera.position.z += direction.z * moveSpeed;
+                    }
+
+                    // Animate data streams
+                    dataStreams.forEach((stream) => {
+                        stream.position.y -= stream.userData.speed;
+                        stream.rotation.y += stream.userData.rotSpeed;
+                        stream.lookAt(camera.position);
+
+                        if (stream.position.y < 0) {
+                            stream.position.y = 25;
+                        }
+                    });
+
+                    // Animate particles
+                    const positions =
+                        particles.geometry.attributes.position.array;
+                    for (let i = 0; i < particleCount; i++) {
+                        positions[i * 3 + 1] -= 0.02;
+                        if (positions[i * 3 + 1] < 0) {
+                            positions[i * 3 + 1] = 30;
+                        }
+                    }
+                    particles.geometry.attributes.position.needsUpdate = true;
+
+                    // Animate wall textures (subtle pulse)
+                    const time = Date.now() * 0.001;
+                    walls.forEach((wall, i) => {
+                        wall.material.opacity =
+                            0.7 + Math.sin(time + i * 0.1) * 0.2;
+                    });
+
+                    renderer.render(scene, camera);
+                }
+
+                // ============ WINDOW RESIZE ============
+                window.addEventListener("resize", () => {
+                    camera.aspect = window.innerWidth / window.innerHeight;
+                    camera.updateProjectionMatrix();
+                    renderer.setSize(window.innerWidth, window.innerHeight);
+                });
+
+                // Start position in maze
+                camera.position.set(
+                    (-mazeSize / 2 + 1.5) * cellSize,
+                    2,
+                    (-mazeSize / 2 + 1.5) * cellSize,
+                );
+
+                animate();
+            } catch (error) {
+                document.body.innerHTML =
+                    '<div style="color: #ff0000; background: #000; padding: 20px; font-family: monospace;">' +
+                    "<h1>Ошибка загрузки</h1><p>" +
+                    error.message +
+                    "</p><p>" +
+                    error.stack +
+                    "</p></div>";
+                console.error(error);
+            }
+        </script>
+    </body>
+</html>
