@@ -2,7 +2,7 @@
 <html lang="en">
     <head>
         <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="viewport" content="width=device-width,initial-scale=1.0" />
         <title>City of Text — OMEGA_SYS</title>
         <style>
             * {
@@ -14,13 +14,14 @@
                 overflow: hidden;
                 background: #000;
                 font-family: "Courier New", monospace;
-                cursor: none;
             }
-            canvas {
+            canvas#gl {
                 display: block;
+                position: fixed;
+                top: 0;
+                left: 0;
+                z-index: 1;
             }
-
-            /* Scanlines overlay */
             #scanlines {
                 position: fixed;
                 top: 0;
@@ -37,7 +38,6 @@
                     transparent 3px
                 );
             }
-            /* Vignette */
             #vignette {
                 position: fixed;
                 top: 0;
@@ -52,7 +52,6 @@
                     rgba(0, 0, 5, 0.85) 100%
                 );
             }
-            /* Crosshair */
             #crosshair {
                 position: fixed;
                 top: 50%;
@@ -67,9 +66,7 @@
                 content: "";
                 position: absolute;
                 background: #44ddff;
-                box-shadow:
-                    0 0 6px #44ddff,
-                    0 0 12px #2288aa;
+                box-shadow: 0 0 6px #44ddff;
             }
             #crosshair::before {
                 width: 20px;
@@ -83,28 +80,23 @@
                 top: -10px;
                 left: 0;
             }
-
-            /* Minimap */
             #minimap {
                 position: fixed;
                 top: 12px;
                 right: 12px;
                 z-index: 120;
-                border: 1px solid rgba(0, 255, 100, 0.5);
-                box-shadow: 0 0 15px rgba(0, 255, 100, 0.15);
+                border: 1px solid rgba(0, 255, 100, 0.4);
+                box-shadow: 0 0 12px rgba(0, 255, 100, 0.1);
                 image-rendering: pixelated;
             }
-
-            /* HUD bottom */
             #hud-bottom {
                 position: fixed;
-                bottom: 30px;
+                bottom: 28px;
                 left: 50%;
                 transform: translateX(-50%);
                 z-index: 120;
                 pointer-events: none;
                 text-align: center;
-                font-family: "Courier New", monospace;
             }
             #hud-node {
                 color: #77ddcc;
@@ -120,8 +112,6 @@
                 letter-spacing: 3px;
                 margin-top: 2px;
             }
-
-            /* Controls info */
             #info {
                 position: fixed;
                 top: 12px;
@@ -134,79 +124,25 @@
                 padding: 10px 14px;
                 border: 1px solid rgba(0, 255, 100, 0.2);
                 line-height: 1.6;
-                display: none;
-            }
-
-            /* Loading */
-            #loading {
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: #000005;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                z-index: 999;
-                font-size: 18px;
-                color: #44bbaa;
-                letter-spacing: 6px;
-                text-shadow: 0 0 20px #44bbaa;
-                flex-direction: column;
-                gap: 15px;
-            }
-            #loading .bar {
-                width: 200px;
-                height: 2px;
-                background: rgba(68, 187, 170, 0.15);
-                position: relative;
-                overflow: hidden;
-            }
-            #loading .bar::after {
-                content: "";
-                position: absolute;
-                width: 60%;
-                height: 100%;
-                background: #44bbaa;
-                animation: loadBar 1.5s ease-in-out infinite;
-            }
-            @keyframes loadBar {
-                0% {
-                    left: -60%;
-                }
-                100% {
-                    left: 100%;
-                }
             }
         </style>
     </head>
     <body>
-        <div id="loading">
-            <span>INITIALIZING OMEGA_SYS</span>
-            <div class="bar"></div>
-        </div>
+        <canvas id="gl"></canvas>
         <div id="scanlines"></div>
         <div id="vignette"></div>
         <div id="crosshair"></div>
-        <canvas id="minimap" width="150" height="150"></canvas>
+        <canvas id="minimap" width="140" height="140"></canvas>
         <div id="hud-bottom">
             <div id="hud-node">[ OMEGA_SYS ]</div>
             <div id="hud-sub">FINANCIAL DB — NODE 0x4</div>
         </div>
         <div id="info">
-            WASD — движение&nbsp;&nbsp;|&nbsp;&nbsp;SHIFT — ускорение<br />
-            Мышь — осмотр&nbsp;&nbsp;|&nbsp;&nbsp;ESC — курсор
+            WASD — движение &nbsp;|&nbsp; SHIFT — спринт<br />
+            Мышь — осмотр &nbsp;|&nbsp; Клик — захват &nbsp;|&nbsp; ESC — курсор
         </div>
 
         <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
-        <script>
-            // If Three.js failed to load, show error immediately
-            if (typeof THREE === 'undefined') {
-                document.getElementById('loading').innerHTML = '<span style="color:#ff3344">ERROR: Three.js CDN unreachable. Check internet.</span>';
-                throw new Error('Three.js CDN failed');
-            }
-        </script>
         <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
@@ -215,23 +151,22 @@
         <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
 
         <script>
-            try {
-                if (typeof THREE === "undefined")
-                    throw new Error("Three.js not loaded");
+            (function () {
+                "use strict";
+                if (typeof THREE === "undefined") {
+                    document.body.innerHTML =
+                        '<div style="color:#f33;padding:40px;font-family:monospace">Three.js failed to load. Check network.</div>';
+                    return;
+                }
 
-                // ==================== CONFIG ====================
-                const MAZE_SIZE = 25; // must be odd
-                const CELL_SIZE = 5;
-                const WALL_HEIGHT = 14;
-                const FOG_DENSITY = 0.01;
-                const BLOOM_STR = 2.2;
-                const BLOOM_RAD = 0.6;
-                const BLOOM_THRESH = 0.25;
-                const MOVE_SPEED = 0.22;
-                const SPRINT_MULT = 2.8;
-                const PLAYER_HEIGHT = 3.0;
-
-                // Color palette — blues / purples / cyans  (matching reference image)
+                // ===================== CONFIG =====================
+                const MZ = 25,
+                    CS = 5,
+                    WH = 14,
+                    FDEN = 0.009;
+                const SPD = 0.22,
+                    SPRINT = 2.8,
+                    PHGT = 3.0;
                 const PALETTE = [
                     "#2244ff",
                     "#4488ff",
@@ -244,22 +179,14 @@
                     "#00ffcc",
                     "#5577ff",
                 ];
-                const PALETTE_HEX = PALETTE.map((c) => new THREE.Color(c));
+                const PALHEX = PALETTE.map((c) => new THREE.Color(c));
+                const CHARS =
+                    "01アイウエオカキクケコサシスセソ{}[]<>=/\\#$%&@!?";
 
-                // ==================== SCENE ====================
-                const scene = new THREE.Scene();
-                scene.background = new THREE.Color(0x000208);
-                scene.fog = new THREE.FogExp2(0x000208, FOG_DENSITY);
-
-                const camera = new THREE.PerspectiveCamera(
-                    72,
-                    innerWidth / innerHeight,
-                    0.1,
-                    800,
-                );
-                camera.position.set(0, PLAYER_HEIGHT, 0);
-
+                // ===================== RENDERER =====================
+                const canvas = document.getElementById("gl");
                 const renderer = new THREE.WebGLRenderer({
+                    canvas,
                     antialias: true,
                     powerPreference: "high-performance",
                 });
@@ -268,72 +195,78 @@
                 renderer.toneMapping = THREE.ACESFilmicToneMapping;
                 renderer.toneMappingExposure = 1.0;
                 renderer.outputEncoding = THREE.sRGBEncoding;
-                document.body.appendChild(renderer.domElement);
 
-                // ==================== POST-PROCESSING ====================
+                const scene = new THREE.Scene();
+                scene.background = new THREE.Color(0x000208);
+                scene.fog = new THREE.FogExp2(0x000208, FDEN);
+
+                const camera = new THREE.PerspectiveCamera(
+                    72,
+                    innerWidth / innerHeight,
+                    0.1,
+                    600,
+                );
+                camera.position.set(0, PHGT, 0);
+
+                // ===================== BLOOM =====================
                 let composer = null;
-                if (THREE.EffectComposer) {
+                try {
                     composer = new THREE.EffectComposer(renderer);
                     composer.addPass(new THREE.RenderPass(scene, camera));
                     const bloom = new THREE.UnrealBloomPass(
                         new THREE.Vector2(innerWidth, innerHeight),
-                        BLOOM_STR,
-                        BLOOM_RAD,
-                        BLOOM_THRESH,
+                        2.0,
+                        0.5,
+                        0.3,
                     );
                     composer.addPass(bloom);
+                } catch (e) {
+                    composer = null;
                 }
 
-                // ==================== LIGHTING ====================
+                // ===================== LIGHTS =====================
                 scene.add(new THREE.AmbientLight(0x0a0a20, 0.8));
+                scene.add(new THREE.HemisphereLight(0x1122aa, 0x000510, 0.4));
 
-                const hemiLight = new THREE.HemisphereLight(
-                    0x1122aa,
-                    0x000510,
-                    0.4,
-                );
-                scene.add(hemiLight);
-
-                // Roaming point lights (blue/purple)
                 const dynLights = [];
-                for (let i = 0; i < 12; i++) {
-                    const c = PALETTE_HEX[i % PALETTE_HEX.length];
-                    const pl = new THREE.PointLight(c, 3, 45);
+                for (let i = 0; i < 10; i++) {
+                    const c = PALHEX[i % PALHEX.length];
+                    const pl = new THREE.PointLight(c, 3, 40);
                     pl.position.set(
-                        (Math.random() - 0.5) * MAZE_SIZE * CELL_SIZE,
-                        2 + Math.random() * 6,
-                        (Math.random() - 0.5) * MAZE_SIZE * CELL_SIZE,
+                        (Math.random() - 0.5) * MZ * CS,
+                        2 + Math.random() * 5,
+                        (Math.random() - 0.5) * MZ * CS,
                     );
                     scene.add(pl);
                     dynLights.push({
-                        light: pl,
-                        baseY: pl.position.y,
-                        spd: 0.3 + Math.random(),
-                        ph: Math.random() * 6.28,
+                        l: pl,
+                        by: pl.position.y,
+                        s: 0.3 + Math.random(),
+                        p: Math.random() * 6.28,
                     });
                 }
 
-                // ==================== MAZE ====================
-                function generateMaze(w, h) {
+                // ===================== MAZE =====================
+                function genMaze(w, h) {
                     const m = Array.from({ length: h }, () =>
                         new Uint8Array(w).fill(1),
                     );
-                    const stk = [[1, 1]];
+                    const sk = [[1, 1]];
                     m[1][1] = 0;
-                    while (stk.length) {
-                        const [x, y] = stk[stk.length - 1];
-                        const dirs = [
+                    while (sk.length) {
+                        const [x, y] = sk[sk.length - 1];
+                        const d = [
                             [0, -2],
                             [0, 2],
                             [-2, 0],
                             [2, 0],
                         ];
-                        for (let i = dirs.length - 1; i > 0; i--) {
+                        for (let i = d.length - 1; i > 0; i--) {
                             const j = (Math.random() * (i + 1)) | 0;
-                            [dirs[i], dirs[j]] = [dirs[j], dirs[i]];
+                            [d[i], d[j]] = [d[j], d[i]];
                         }
-                        let found = false;
-                        for (const [dx, dy] of dirs) {
+                        let f = false;
+                        for (const [dx, dy] of d) {
                             const nx = x + dx,
                                 ny = y + dy;
                             if (
@@ -345,90 +278,80 @@
                             ) {
                                 m[y + dy / 2][x + dx / 2] = 0;
                                 m[ny][nx] = 0;
-                                stk.push([nx, ny]);
-                                found = true;
+                                sk.push([nx, ny]);
+                                f = true;
                                 break;
                             }
                         }
-                        if (!found) stk.pop();
+                        if (!f) sk.pop();
                     }
                     return m;
                 }
-                const maze = generateMaze(MAZE_SIZE, MAZE_SIZE);
+                const maze = genMaze(MZ, MZ);
 
-                // ==================== TEXT TEXTURES ====================
-                const CHARS =
-                    "01アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン{}[]<>=/\\#$%&@!?∞∑∏∫√≈≠≤≥←→↑↓";
-
-                function makeTextTexture(w, h, color, density = 1.0) {
+                // ===================== TEXTURE POOL (fast, NO shadowBlur) =====================
+                function makeTextTex(w, h, color) {
                     const c = document.createElement("canvas");
                     c.width = w;
                     c.height = h;
                     const g = c.getContext("2d");
-
-                    // Deep dark gradient bg
-                    const grad = g.createLinearGradient(0, 0, w, h);
-                    grad.addColorStop(0, "#000210");
-                    grad.addColorStop(0.5, "#000108");
-                    grad.addColorStop(1, "#010215");
-                    g.fillStyle = grad;
+                    // Dark bg
+                    g.fillStyle = "#000210";
                     g.fillRect(0, 0, w, h);
-
-                    // Faint horizontal scan lines
+                    // Faint h-lines
                     g.strokeStyle = color;
-                    g.globalAlpha = 0.03;
-                    for (let y = 0; y < h; y += 8) {
+                    g.globalAlpha = 0.04;
+                    g.lineWidth = 1;
+                    for (let y = 0; y < h; y += 10) {
                         g.beginPath();
                         g.moveTo(0, y);
                         g.lineTo(w, y);
                         g.stroke();
                     }
-
-                    // Dense character grid
-                    const fontSize = Math.max(8, Math.round(10 * density));
-                    const step = fontSize + 1;
-                    g.font = `${fontSize}px Courier New`;
-                    g.shadowColor = color;
-
-                    for (let y = fontSize; y < h; y += step) {
-                        for (let x = 0; x < w; x += step - 2) {
-                            if (Math.random() > 0.15) {
-                                const ch =
-                                    CHARS[(Math.random() * CHARS.length) | 0];
-                                g.globalAlpha = 0.15 + Math.random() * 0.65;
-                                g.shadowBlur = 4 + Math.random() * 8;
+                    // Characters — NO shadowBlur
+                    const fs = 10,
+                        step = fs + 2;
+                    g.font = fs + "px Courier New";
+                    g.textBaseline = "top";
+                    for (let y = 0; y < h; y += step) {
+                        for (let x = 0; x < w; x += step) {
+                            if (Math.random() > 0.2) {
+                                g.globalAlpha = 0.15 + Math.random() * 0.5;
                                 g.fillStyle = color;
-                                g.fillText(ch, x, y);
+                                g.fillText(
+                                    CHARS[(Math.random() * CHARS.length) | 0],
+                                    x,
+                                    y,
+                                );
                             }
                         }
                     }
-
-                    // Scattered bright "active" chars
-                    g.globalAlpha = 1;
-                    g.shadowBlur = 18;
-                    g.fillStyle = "#ffffff";
-                    for (let i = 0; i < Math.round(8 * density); i++) {
-                        const ch = CHARS[(Math.random() * CHARS.length) | 0];
+                    // A few bright white chars
+                    g.globalAlpha = 0.9;
+                    g.fillStyle = "#fff";
+                    for (let i = 0; i < 4; i++)
                         g.fillText(
-                            ch,
-                            Math.random() * w,
-                            fontSize + Math.random() * (h - fontSize * 2),
+                            CHARS[(Math.random() * CHARS.length) | 0],
+                            (Math.random() * w) | 0,
+                            (Math.random() * h) | 0,
                         );
-                    }
-
-                    const tex = new THREE.CanvasTexture(c);
-                    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-                    tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
-                    return tex;
+                    const t = new THREE.CanvasTexture(c);
+                    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+                    return t;
                 }
 
-                // ==================== WALL MATERIALS ====================
-                const wallMats = PALETTE.map((col) => {
-                    const tex = makeTextTexture(512, 1024, col, 1.2);
+                // Pre-generate a POOL of textures (only 10, reused everywhere)
+                const TEX_POOL = [];
+                for (let i = 0; i < PALETTE.length; i++) {
+                    TEX_POOL.push(makeTextTex(256, 512, PALETTE[i]));
+                }
+
+                // Materials pool
+                const WALL_MATS = TEX_POOL.map((tex, i) => {
                     return new THREE.MeshStandardMaterial({
                         map: tex,
-                        emissive: new THREE.Color(col),
-                        emissiveIntensity: 0.35,
+                        emissive: PALHEX[i],
+                        emissiveIntensity: 0.3,
                         emissiveMap: tex,
                         transparent: true,
                         opacity: 0.92,
@@ -438,50 +361,39 @@
                     });
                 });
 
-                // ==================== BUILD MAZE WALLS ====================
-                const wallGeo = new THREE.BoxGeometry(
-                    CELL_SIZE,
-                    WALL_HEIGHT,
-                    CELL_SIZE,
-                );
+                // ===================== BUILD MAZE =====================
+                const wallGeo = new THREE.BoxGeometry(CS, WH, CS);
                 const walls = [];
-                const wallEdgesGroup = new THREE.Group();
-                scene.add(wallEdgesGroup);
+                const edgeGeo = new THREE.EdgesGeometry(wallGeo);
 
-                for (let z = 0; z < MAZE_SIZE; z++) {
-                    for (let x = 0; x < MAZE_SIZE; x++) {
+                for (let z = 0; z < MZ; z++) {
+                    for (let x = 0; x < MZ; x++) {
                         if (maze[z][x] === 1) {
-                            const mat =
-                                wallMats[(Math.random() * wallMats.length) | 0];
-                            const mesh = new THREE.Mesh(wallGeo, mat);
-                            mesh.position.set(
-                                (x - MAZE_SIZE / 2) * CELL_SIZE,
-                                WALL_HEIGHT / 2,
-                                (z - MAZE_SIZE / 2) * CELL_SIZE,
+                            const mi = (Math.random() * WALL_MATS.length) | 0;
+                            const w = new THREE.Mesh(wallGeo, WALL_MATS[mi]);
+                            w.position.set(
+                                (x - MZ / 2) * CS,
+                                WH / 2,
+                                (z - MZ / 2) * CS,
                             );
-                            scene.add(mesh);
-                            walls.push(mesh);
-
-                            // Wireframe edge glow on every wall
-                            const edgeGeo = new THREE.EdgesGeometry(wallGeo);
-                            const edgeMat = new THREE.LineBasicMaterial({
-                                color: mat.emissive,
+                            scene.add(w);
+                            walls.push(w);
+                            // Edge wireframe
+                            const em = new THREE.LineBasicMaterial({
+                                color: PALHEX[mi],
                                 transparent: true,
-                                opacity: 0.25,
+                                opacity: 0.2,
                             });
-                            const edges = new THREE.LineSegments(
-                                edgeGeo,
-                                edgeMat,
-                            );
-                            edges.position.copy(mesh.position);
-                            wallEdgesGroup.add(edges);
+                            const el = new THREE.LineSegments(edgeGeo, em);
+                            el.position.copy(w.position);
+                            scene.add(el);
                         }
                     }
                 }
 
-                // ==================== FLOOR ====================
-                const floorSize = MAZE_SIZE * CELL_SIZE * 2.5;
-                const floorGeo = new THREE.PlaneGeometry(floorSize, floorSize);
+                // ===================== FLOOR =====================
+                const FS = MZ * CS * 2;
+                const floorGeo = new THREE.PlaneGeometry(FS, FS);
                 const floorMat = new THREE.MeshStandardMaterial({
                     color: 0x020210,
                     metalness: 0.95,
@@ -492,179 +404,145 @@
                 floor.position.y = -0.02;
                 scene.add(floor);
 
-                // Neon grid
-                const gridPts = [];
-                const gExt = floorSize / 2;
-                for (let i = -gExt; i <= gExt; i += CELL_SIZE) {
-                    gridPts.push(-gExt, 0.02, i, gExt, 0.02, i);
-                    gridPts.push(i, 0.02, -gExt, i, 0.02, gExt);
+                // Grid lines
+                const gp = [];
+                const ge = FS / 2;
+                for (let i = -ge; i <= ge; i += CS) {
+                    gp.push(-ge, 0.02, i, ge, 0.02, i);
+                    gp.push(i, 0.02, -ge, i, 0.02, ge);
                 }
-                const gridGeo = new THREE.BufferGeometry();
-                gridGeo.setAttribute(
+                const gg = new THREE.BufferGeometry();
+                gg.setAttribute(
                     "position",
-                    new THREE.Float32BufferAttribute(gridPts, 3),
+                    new THREE.Float32BufferAttribute(gp, 3),
                 );
-                const gridLine = new THREE.LineSegments(
-                    gridGeo,
-                    new THREE.LineBasicMaterial({
-                        color: 0x1144aa,
-                        transparent: true,
-                        opacity: 0.18,
-                    }),
+                scene.add(
+                    new THREE.LineSegments(
+                        gg,
+                        new THREE.LineBasicMaterial({
+                            color: 0x1144aa,
+                            transparent: true,
+                            opacity: 0.15,
+                        }),
+                    ),
                 );
-                scene.add(gridLine);
 
-                // ==================== VOLUMETRIC LIGHT COLUMNS ====================
-                const lightColumns = [];
-                for (let i = 0; i < 20; i++) {
-                    const colH = 30 + Math.random() * 40;
-                    const colW = 0.6 + Math.random() * 1.5;
+                // ===================== LIGHT COLUMNS =====================
+                const lightCols = [];
+                for (let i = 0; i < 15; i++) {
+                    const ch = 25 + Math.random() * 35,
+                        cw = 0.5 + Math.random() * 1.2;
                     const geo = new THREE.CylinderGeometry(
-                        colW,
-                        colW * 0.3,
-                        colH,
-                        8,
+                        cw,
+                        cw * 0.3,
+                        ch,
+                        6,
                         1,
                         true,
                     );
-                    const col =
-                        PALETTE_HEX[(Math.random() * PALETTE_HEX.length) | 0];
+                    const col = PALHEX[(Math.random() * PALHEX.length) | 0];
                     const mat = new THREE.MeshBasicMaterial({
                         color: col,
                         transparent: true,
-                        opacity: 0.06 + Math.random() * 0.08,
+                        opacity: 0.05,
                         side: THREE.DoubleSide,
                         blending: THREE.AdditiveBlending,
                         depthWrite: false,
                     });
-                    const pillar = new THREE.Mesh(geo, mat);
-                    pillar.position.set(
-                        (Math.random() - 0.5) * MAZE_SIZE * CELL_SIZE * 1.1,
-                        colH / 2,
-                        (Math.random() - 0.5) * MAZE_SIZE * CELL_SIZE * 1.1,
+                    const m = new THREE.Mesh(geo, mat);
+                    m.position.set(
+                        (Math.random() - 0.5) * MZ * CS * 1.1,
+                        ch / 2,
+                        (Math.random() - 0.5) * MZ * CS * 1.1,
                     );
-                    scene.add(pillar);
-                    lightColumns.push({
-                        mesh: pillar,
-                        phase: Math.random() * 6.28,
-                        speed: 0.3 + Math.random() * 0.7,
+                    scene.add(m);
+                    lightCols.push({
+                        m,
+                        ph: Math.random() * 6.28,
+                        sp: 0.3 + Math.random() * 0.7,
                     });
                 }
 
-                // ==================== SKYLINE TOWERS ====================
-                for (let i = 0; i < 60; i++) {
-                    const h = 25 + Math.random() * 80;
-                    const w = 3 + Math.random() * 8;
-                    const d = 3 + Math.random() * 8;
-                    const geo = new THREE.BoxGeometry(w, h, d);
-                    const col = PALETTE[(Math.random() * PALETTE.length) | 0];
-                    const tex = makeTextTexture(256, 1024, col, 0.8);
+                // ===================== TOWERS =====================
+                // Reuse pool textures for towers too
+                for (let i = 0; i < 40; i++) {
+                    const h = 20 + Math.random() * 60,
+                        tw = 3 + Math.random() * 6,
+                        td = 3 + Math.random() * 6;
+                    const ti = (Math.random() * TEX_POOL.length) | 0;
                     const mat = new THREE.MeshStandardMaterial({
-                        map: tex,
-                        emissive: new THREE.Color(col),
-                        emissiveIntensity: 0.15,
-                        emissiveMap: tex,
+                        map: TEX_POOL[ti],
+                        emissive: PALHEX[ti],
+                        emissiveIntensity: 0.12,
                         transparent: true,
-                        opacity: 0.75,
+                        opacity: 0.7,
                         metalness: 0.2,
                         roughness: 0.7,
                     });
-                    const tower = new THREE.Mesh(geo, mat);
-                    const angle = Math.random() * Math.PI * 2;
-                    const dist =
-                        MAZE_SIZE * CELL_SIZE * 0.6 +
-                        Math.random() * MAZE_SIZE * CELL_SIZE * 0.7;
-                    tower.position.set(
-                        Math.cos(angle) * dist,
+                    const t = new THREE.Mesh(
+                        new THREE.BoxGeometry(tw, h, td),
+                        mat,
+                    );
+                    const a = Math.random() * Math.PI * 2;
+                    const dist = MZ * CS * 0.55 + Math.random() * MZ * CS * 0.6;
+                    t.position.set(
+                        Math.cos(a) * dist,
                         h / 2,
-                        Math.sin(angle) * dist,
+                        Math.sin(a) * dist,
                     );
-                    scene.add(tower);
-
-                    // Edge wireframe
-                    if (Math.random() > 0.4) {
-                        const eg = new THREE.EdgesGeometry(geo);
-                        const em = new THREE.LineBasicMaterial({
-                            color: new THREE.Color(col),
-                            transparent: true,
-                            opacity: 0.3,
-                        });
-                        const el = new THREE.LineSegments(eg, em);
-                        el.position.copy(tower.position);
-                        scene.add(el);
-                    }
-                }
-
-                // ==================== DATA RAIN STREAMS ====================
-                const dataStreams = [];
-                function makeStream() {
-                    const cv = document.createElement("canvas");
-                    cv.width = 32;
-                    cv.height = 512;
-                    const g = cv.getContext("2d");
-
-                    const col = PALETTE[(Math.random() * PALETTE.length) | 0];
-                    const grad = g.createLinearGradient(0, 0, 0, 512);
-                    grad.addColorStop(0, "transparent");
-                    grad.addColorStop(0.15, col + "30");
-                    grad.addColorStop(0.85, col + "60");
-                    grad.addColorStop(1, "transparent");
-                    g.fillStyle = grad;
-                    g.fillRect(0, 0, 32, 512);
-
-                    g.font = "bold 12px Courier New";
-                    g.shadowColor = col;
-                    g.shadowBlur = 8;
-                    for (let y = 12; y < 512; y += 14) {
-                        g.globalAlpha = 0.3 + Math.random() * 0.7;
-                        g.fillStyle = y > 450 ? "#ffffff" : col;
-                        g.fillText(
-                            CHARS[(Math.random() * CHARS.length) | 0],
-                            10,
-                            y,
+                    scene.add(t);
+                    if (Math.random() > 0.5) {
+                        const eg2 = new THREE.EdgesGeometry(t.geometry);
+                        const el2 = new THREE.LineSegments(
+                            eg2,
+                            new THREE.LineBasicMaterial({
+                                color: PALHEX[ti],
+                                transparent: true,
+                                opacity: 0.25,
+                            }),
                         );
+                        el2.position.copy(t.position);
+                        scene.add(el2);
                     }
+                }
 
-                    const tex = new THREE.CanvasTexture(cv);
-                    const mesh = new THREE.Mesh(
-                        new THREE.PlaneGeometry(0.5, 7),
-                        new THREE.MeshBasicMaterial({
-                            map: tex,
-                            transparent: true,
-                            opacity: 0.85,
-                            side: THREE.DoubleSide,
-                            blending: THREE.AdditiveBlending,
-                            depthWrite: false,
-                        }),
-                    );
-                    mesh.position.set(
-                        (Math.random() - 0.5) * MAZE_SIZE * CELL_SIZE * 1.4,
+                // ===================== DATA STREAMS (simple quads) =====================
+                const streams = [];
+                const streamGeo = new THREE.PlaneGeometry(0.4, 5);
+                for (let i = 0; i < 120; i++) {
+                    const ci = (Math.random() * PALHEX.length) | 0;
+                    const mat = new THREE.MeshBasicMaterial({
+                        color: PALHEX[ci],
+                        transparent: true,
+                        opacity: 0.15,
+                        side: THREE.DoubleSide,
+                        blending: THREE.AdditiveBlending,
+                        depthWrite: false,
+                    });
+                    const m = new THREE.Mesh(streamGeo, mat);
+                    m.position.set(
+                        (Math.random() - 0.5) * MZ * CS * 1.3,
                         8 + Math.random() * 30,
-                        (Math.random() - 0.5) * MAZE_SIZE * CELL_SIZE * 1.4,
+                        (Math.random() - 0.5) * MZ * CS * 1.3,
                     );
-                    mesh.userData = {
+                    m.userData = {
                         spd: 0.04 + Math.random() * 0.1,
-                        resetH: 35 + Math.random() * 15,
+                        rh: 35 + Math.random() * 15,
                     };
-                    return mesh;
-                }
-                for (let i = 0; i < 200; i++) {
-                    const s = makeStream();
-                    scene.add(s);
-                    dataStreams.push(s);
+                    scene.add(m);
+                    streams.push(m);
                 }
 
-                // ==================== PARTICLES ====================
-                const PCNT = 1500;
+                // ===================== PARTICLES =====================
+                const PCNT = 1200;
                 const pGeo = new THREE.BufferGeometry();
-                const pPos = new Float32Array(PCNT * 3);
-                const pCol = new Float32Array(PCNT * 3);
+                const pPos = new Float32Array(PCNT * 3),
+                    pCol = new Float32Array(PCNT * 3);
                 for (let i = 0; i < PCNT; i++) {
-                    pPos[i * 3] = (Math.random() - 0.5) * floorSize;
-                    pPos[i * 3 + 1] = Math.random() * 50;
-                    pPos[i * 3 + 2] = (Math.random() - 0.5) * floorSize;
-                    const c =
-                        PALETTE_HEX[(Math.random() * PALETTE_HEX.length) | 0];
+                    pPos[i * 3] = (Math.random() - 0.5) * FS;
+                    pPos[i * 3 + 1] = Math.random() * 45;
+                    pPos[i * 3 + 2] = (Math.random() - 0.5) * FS;
+                    const c = PALHEX[(Math.random() * PALHEX.length) | 0];
                     pCol[i * 3] = c.r;
                     pCol[i * 3 + 1] = c.g;
                     pCol[i * 3 + 2] = c.b;
@@ -674,139 +552,147 @@
                     new THREE.BufferAttribute(pPos, 3),
                 );
                 pGeo.setAttribute("color", new THREE.BufferAttribute(pCol, 3));
-                const pMat = new THREE.PointsMaterial({
-                    size: 0.2,
-                    vertexColors: true,
-                    transparent: true,
-                    opacity: 0.7,
-                    blending: THREE.AdditiveBlending,
-                    sizeAttenuation: true,
-                    depthWrite: false,
-                });
-                const particles = new THREE.Points(pGeo, pMat);
+                const particles = new THREE.Points(
+                    pGeo,
+                    new THREE.PointsMaterial({
+                        size: 0.2,
+                        vertexColors: true,
+                        transparent: true,
+                        opacity: 0.7,
+                        blending: THREE.AdditiveBlending,
+                        sizeAttenuation: true,
+                        depthWrite: false,
+                    }),
+                );
                 scene.add(particles);
 
-                // ==================== NEON TUBES ====================
-                for (let i = 0; i < 50; i++) {
-                    const length = 3 + Math.random() * 12;
-                    const col =
-                        PALETTE_HEX[(Math.random() * PALETTE_HEX.length) | 0];
-                    const geo = new THREE.CylinderGeometry(
-                        0.06,
-                        0.06,
-                        length,
-                        6,
-                    );
+                // ===================== NEON TUBES =====================
+                const tubeGeo = new THREE.CylinderGeometry(0.06, 0.06, 1, 5);
+                for (let i = 0; i < 35; i++) {
+                    const len = 3 + Math.random() * 10;
+                    const ci = (Math.random() * PALHEX.length) | 0;
                     const mat = new THREE.MeshBasicMaterial({
-                        color: col,
+                        color: PALHEX[ci],
                         transparent: true,
-                        opacity: 0.85,
+                        opacity: 0.8,
                     });
-                    const tube = new THREE.Mesh(geo, mat);
-                    tube.position.set(
-                        (Math.random() - 0.5) * floorSize * 0.5,
-                        1 + Math.random() * 18,
-                        (Math.random() - 0.5) * floorSize * 0.5,
+                    const t = new THREE.Mesh(tubeGeo, mat);
+                    t.scale.y = len;
+                    t.position.set(
+                        (Math.random() - 0.5) * FS * 0.4,
+                        1 + Math.random() * 16,
+                        (Math.random() - 0.5) * FS * 0.4,
                     );
-                    if (Math.random() > 0.5) tube.rotation.z = Math.PI / 2;
-                    else tube.rotation.x = Math.PI / 2;
-                    scene.add(tube);
+                    if (Math.random() > 0.5) t.rotation.z = Math.PI / 2;
+                    else t.rotation.x = Math.PI / 2;
+                    scene.add(t);
                 }
 
-                // ==================== HOLOGRAMS ====================
-                const holograms = [];
-                for (let i = 0; i < 20; i++) {
-                    const geos = [
-                        new THREE.IcosahedronGeometry(0.8, 0),
-                        new THREE.OctahedronGeometry(0.8, 0),
-                        new THREE.TorusGeometry(0.6, 0.2, 6, 12),
-                        new THREE.TetrahedronGeometry(0.8, 0),
-                    ];
-                    const g = geos[(Math.random() * geos.length) | 0];
-                    const col =
-                        PALETTE_HEX[(Math.random() * PALETTE_HEX.length) | 0];
+                // ===================== HOLOGRAMS =====================
+                const holos = [];
+                const holoGeos = [
+                    new THREE.IcosahedronGeometry(0.7, 0),
+                    new THREE.OctahedronGeometry(0.7, 0),
+                    new THREE.TorusGeometry(0.5, 0.18, 6, 10),
+                    new THREE.TetrahedronGeometry(0.7, 0),
+                ];
+                for (let i = 0; i < 15; i++) {
+                    const g = holoGeos[(Math.random() * holoGeos.length) | 0];
+                    const c = PALHEX[(Math.random() * PALHEX.length) | 0];
                     const m = new THREE.Mesh(
                         g,
                         new THREE.MeshBasicMaterial({
-                            color: col,
+                            color: c,
                             wireframe: true,
                             transparent: true,
-                            opacity: 0.55,
+                            opacity: 0.5,
                         }),
                     );
                     m.position.set(
-                        (Math.random() - 0.5) * MAZE_SIZE * CELL_SIZE * 0.9,
-                        2 + Math.random() * 10,
-                        (Math.random() - 0.5) * MAZE_SIZE * CELL_SIZE * 0.9,
+                        (Math.random() - 0.5) * MZ * CS * 0.8,
+                        2 + Math.random() * 9,
+                        (Math.random() - 0.5) * MZ * CS * 0.8,
                     );
                     m.userData = {
                         rx: (Math.random() - 0.5) * 0.025,
                         ry: (Math.random() - 0.5) * 0.03,
-                        baseY: m.position.y,
-                        fSpd: 0.4 + Math.random(),
-                        fOff: Math.random() * 6.28,
+                        by: m.position.y,
+                        fs: 0.4 + Math.random(),
+                        fo: Math.random() * 6.28,
                     };
                     scene.add(m);
-                    holograms.push(m);
+                    holos.push(m);
                 }
 
-                // ==================== MINIMAP ====================
-                const minimapCanvas = document.getElementById("minimap");
-                const mmCtx = minimapCanvas.getContext("2d");
-                function drawMinimap() {
-                    const s = minimapCanvas.width / MAZE_SIZE;
-                    mmCtx.fillStyle = "rgba(0,2,8,0.92)";
-                    mmCtx.fillRect(
-                        0,
-                        0,
-                        minimapCanvas.width,
-                        minimapCanvas.height,
-                    );
-                    for (let z = 0; z < MAZE_SIZE; z++) {
-                        for (let x = 0; x < MAZE_SIZE; x++) {
-                            if (maze[z][x] === 1) {
-                                mmCtx.fillStyle = "#1a5533";
-                                mmCtx.fillRect(x * s, z * s, s, s);
-                            }
+                // ===================== MINIMAP =====================
+                const mmC = document.getElementById("minimap"),
+                    mmG = mmC.getContext("2d");
+                const mmS = mmC.width / MZ;
+                // Pre-draw static maze part
+                const mmStatic = document.createElement("canvas");
+                mmStatic.width = mmC.width;
+                mmStatic.height = mmC.height;
+                const mmSG = mmStatic.getContext("2d");
+                mmSG.fillStyle = "rgba(0,2,8,.92)";
+                mmSG.fillRect(0, 0, mmC.width, mmC.height);
+                for (let z = 0; z < MZ; z++)
+                    for (let x = 0; x < MZ; x++) {
+                        if (maze[z][x] === 1) {
+                            mmSG.fillStyle = "#1a5533";
+                            mmSG.fillRect(x * mmS, z * mmS, mmS, mmS);
                         }
                     }
-                }
-                function updateMinimapPlayer() {
-                    drawMinimap();
-                    const px =
-                        (camera.position.x / CELL_SIZE + MAZE_SIZE / 2) *
-                        (minimapCanvas.width / MAZE_SIZE);
-                    const pz =
-                        (camera.position.z / CELL_SIZE + MAZE_SIZE / 2) *
-                        (minimapCanvas.height / MAZE_SIZE);
-                    mmCtx.fillStyle = "#00ff66";
-                    mmCtx.shadowColor = "#00ff66";
-                    mmCtx.shadowBlur = 6;
-                    mmCtx.beginPath();
-                    mmCtx.arc(px, pz, 3, 0, Math.PI * 2);
-                    mmCtx.fill();
-                    mmCtx.shadowBlur = 0;
 
-                    // Direction indicator
-                    const dirLen = 8;
-                    mmCtx.strokeStyle = "#00ff66";
-                    mmCtx.lineWidth = 1.5;
-                    mmCtx.beginPath();
-                    mmCtx.moveTo(px, pz);
-                    mmCtx.lineTo(
-                        px - Math.sin(yaw) * dirLen,
-                        pz - Math.cos(yaw) * dirLen,
-                    );
-                    mmCtx.stroke();
+                function drawMM() {
+                    mmG.drawImage(mmStatic, 0, 0);
+                    const px = (camera.position.x / CS + MZ / 2) * mmS;
+                    const pz = (camera.position.z / CS + MZ / 2) * mmS;
+                    mmG.fillStyle = "#00ff66";
+                    mmG.beginPath();
+                    mmG.arc(px, pz, 2.5, 0, 6.28);
+                    mmG.fill();
+                    mmG.strokeStyle = "#00ff66";
+                    mmG.lineWidth = 1.5;
+                    mmG.beginPath();
+                    mmG.moveTo(px, pz);
+                    mmG.lineTo(px - Math.sin(yaw) * 7, pz - Math.cos(yaw) * 7);
+                    mmG.stroke();
                 }
-                drawMinimap();
 
-                // ==================== CONTROLS ====================
+                // ===================== HUD =====================
+                const NODES = [
+                    "OMEGA_SYS",
+                    "NEXUS_CORE",
+                    "CIPHER_NET",
+                    "SHADOW_DB",
+                    "QUANTUM_IO",
+                    "GENESIS_MX",
+                ];
+                const SUBS = [
+                    "FINANCIAL DB — NODE 0x4",
+                    "SECURITY LAYER 7",
+                    "DATA STREAM ACTIVE",
+                    "ENCRYPTION MATRIX",
+                    "NEURAL PATHWAY 0xF3",
+                ];
+                let hudT = 0;
+                function updHUD(t) {
+                    if (t - hudT > 8) {
+                        hudT = t;
+                        document.getElementById("hud-node").textContent =
+                            "[ " +
+                            NODES[(Math.random() * NODES.length) | 0] +
+                            " ]";
+                        document.getElementById("hud-sub").textContent =
+                            SUBS[(Math.random() * SUBS.length) | 0];
+                    }
+                }
+
+                // ===================== CONTROLS =====================
                 const keys = {};
-                const direction = new THREE.Vector3();
+                const dir = new THREE.Vector3();
                 let yaw = 0,
                     pitch = 0;
-
                 addEventListener("keydown", (e) => {
                     keys[e.code] = true;
                     if (
@@ -821,7 +707,6 @@
                             "ArrowRight",
                             "ShiftLeft",
                             "ShiftRight",
-                            "Space",
                         ].includes(e.code)
                     )
                         e.preventDefault();
@@ -840,34 +725,30 @@
                     }
                 });
 
-                // ==================== COLLISION ====================
-                function blocked(pos) {
-                    const gx = Math.floor(
-                        (pos.x + (MAZE_SIZE * CELL_SIZE) / 2) / CELL_SIZE,
-                    );
-                    const gz = Math.floor(
-                        (pos.z + (MAZE_SIZE * CELL_SIZE) / 2) / CELL_SIZE,
-                    );
-                    const r = 0.55;
+                // ===================== COLLISION =====================
+                function blocked(p) {
+                    const gx = Math.floor((p.x + (MZ * CS) / 2) / CS),
+                        gz = Math.floor((p.z + (MZ * CS) / 2) / CS),
+                        r = 0.55;
                     for (let dz = -1; dz <= 1; dz++)
                         for (let dx = -1; dx <= 1; dx++) {
                             const cx = gx + dx,
                                 cz = gz + dz;
                             if (
                                 cx >= 0 &&
-                                cx < MAZE_SIZE &&
+                                cx < MZ &&
                                 cz >= 0 &&
-                                cz < MAZE_SIZE &&
+                                cz < MZ &&
                                 maze[cz][cx] === 1
                             ) {
-                                const wx = (cx - MAZE_SIZE / 2) * CELL_SIZE;
-                                const wz = (cz - MAZE_SIZE / 2) * CELL_SIZE;
-                                const hc = CELL_SIZE / 2;
+                                const wx = (cx - MZ / 2) * CS,
+                                    wz = (cz - MZ / 2) * CS,
+                                    hc = CS / 2;
                                 if (
-                                    pos.x > wx - hc - r &&
-                                    pos.x < wx + hc + r &&
-                                    pos.z > wz - hc - r &&
-                                    pos.z < wz + hc + r
+                                    p.x > wx - hc - r &&
+                                    p.x < wx + hc + r &&
+                                    p.z > wz - hc - r &&
+                                    p.z < wz + hc + r
                                 )
                                     return true;
                             }
@@ -875,173 +756,104 @@
                     return false;
                 }
 
-                // ==================== HUD UPDATE ====================
-                const nodeNames = [
-                    "OMEGA_SYS",
-                    "NEXUS_CORE",
-                    "CIPHER_NET",
-                    "SHADOW_DB",
-                    "QUANTUM_IO",
-                    "GENESIS_MX",
-                    "HELIX_PROC",
-                    "VORTEX_SYS",
-                ];
-                const subLabels = [
-                    "FINANCIAL DB — NODE 0x4",
-                    "SECURITY LAYER 7",
-                    "DATA STREAM ACTIVE",
-                    "ENCRYPTION MATRIX",
-                    "NEURAL PATHWAY 0xF3",
-                    "MAINFRAME ACCESS",
-                ];
-                let hudTimer = 0;
-
-                function updateHUD(time) {
-                    if (time - hudTimer > 8) {
-                        hudTimer = time;
-                        document.getElementById("hud-node").textContent =
-                            "[ " +
-                            nodeNames[(Math.random() * nodeNames.length) | 0] +
-                            " ]";
-                        document.getElementById("hud-sub").textContent =
-                            subLabels[(Math.random() * subLabels.length) | 0];
-                    }
-                }
-
-                // ==================== ANIMATION ====================
-                let prevT = performance.now();
-
-                // Hide loading screen immediately — everything is ready
-                document.getElementById("loading").style.display = "none";
-                document.getElementById("info").style.display = "block";
-
-                // Start position
+                // ===================== START =====================
                 camera.position.set(
-                    (-MAZE_SIZE / 2 + 1.5) * CELL_SIZE,
-                    PLAYER_HEIGHT,
-                    (-MAZE_SIZE / 2 + 1.5) * CELL_SIZE,
+                    (-MZ / 2 + 1.5) * CS,
+                    PHGT,
+                    (-MZ / 2 + 1.5) * CS,
                 );
 
-                function animate() {
-                    requestAnimationFrame(animate);
-                    const now = performance.now();
-                    const dt = (now - prevT) / 1000;
+                // ===================== LOOP =====================
+                let prevT = performance.now();
+                function loop() {
+                    requestAnimationFrame(loop);
+                    const now = performance.now(),
+                        dt = (now - prevT) / 1000;
                     prevT = now;
                     const t = now * 0.001;
 
-                    // Camera
                     camera.rotation.order = "YXZ";
                     camera.rotation.y = yaw;
                     camera.rotation.x = pitch;
 
-                    // Movement with collision
-                    direction.set(0, 0, 0);
-                    if (keys["KeyW"] || keys["ArrowUp"]) direction.z -= 1;
-                    if (keys["KeyS"] || keys["ArrowDown"]) direction.z += 1;
-                    if (keys["KeyA"] || keys["ArrowLeft"]) direction.x -= 1;
-                    if (keys["KeyD"] || keys["ArrowRight"]) direction.x += 1;
-
-                    if (direction.length() > 0) {
-                        const spd =
-                            keys["ShiftLeft"] || keys["ShiftRight"]
-                                ? MOVE_SPEED * SPRINT_MULT
-                                : MOVE_SPEED;
-                        direction
-                            .normalize()
-                            .applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
-
-                        const newPos = camera.position.clone();
-                        newPos.x += direction.x * spd;
-                        newPos.z += direction.z * spd;
-
-                        // Slide collision: try each axis independently
-                        const testX = camera.position.clone();
-                        testX.x = newPos.x;
-                        const testZ = camera.position.clone();
-                        testZ.z = newPos.z;
-                        if (!blocked(testX)) camera.position.x = testX.x;
-                        if (!blocked(testZ)) camera.position.z = testZ.z;
+                    dir.set(0, 0, 0);
+                    if (keys.KeyW || keys.ArrowUp) dir.z -= 1;
+                    if (keys.KeyS || keys.ArrowDown) dir.z += 1;
+                    if (keys.KeyA || keys.ArrowLeft) dir.x -= 1;
+                    if (keys.KeyD || keys.ArrowRight) dir.x += 1;
+                    if (dir.length() > 0) {
+                        const sp =
+                            keys.ShiftLeft || keys.ShiftRight
+                                ? SPD * SPRINT
+                                : SPD;
+                        dir.normalize().applyAxisAngle(
+                            new THREE.Vector3(0, 1, 0),
+                            yaw,
+                        );
+                        const tx = camera.position.clone();
+                        tx.x += dir.x * sp;
+                        const tz = camera.position.clone();
+                        tz.z += dir.z * sp;
+                        if (!blocked(tx)) camera.position.x = tx.x;
+                        if (!blocked(tz)) camera.position.z = tz.z;
                     }
+                    camera.position.y =
+                        PHGT +
+                        (dir.length() > 0
+                            ? Math.sin(t * 8) * 0.05
+                            : Math.sin(t * 1.5) * 0.02);
 
-                    // Head bob
-                    if (direction.length() > 0) {
-                        camera.position.y =
-                            PLAYER_HEIGHT + Math.sin(t * 8) * 0.06;
-                    } else {
-                        camera.position.y =
-                            PLAYER_HEIGHT + Math.sin(t * 1.5) * 0.02;
-                    }
-
-                    // Dynamic lights
+                    // Lights
                     dynLights.forEach((d, i) => {
-                        d.light.position.y =
-                            d.baseY + Math.sin(t * d.spd + d.ph) * 2.5;
-                        d.light.intensity =
-                            2.5 + Math.sin(t * 1.5 + i * 0.7) * 1.5;
+                        d.l.position.y = d.by + Math.sin(t * d.s + d.p) * 2;
+                        d.l.intensity = 2.5 + Math.sin(t * 1.5 + i * 0.7) * 1.2;
                     });
 
-                    // Volumetric columns
-                    lightColumns.forEach((lc) => {
-                        lc.mesh.material.opacity =
-                            0.04 + Math.sin(t * lc.speed + lc.phase) * 0.03;
-                        lc.mesh.rotation.y += 0.001;
+                    // Columns
+                    lightCols.forEach((c) => {
+                        c.m.material.opacity =
+                            0.03 + Math.sin(t * c.sp + c.ph) * 0.025;
                     });
 
-                    // Data streams
-                    dataStreams.forEach((s) => {
+                    // Streams
+                    streams.forEach((s) => {
                         s.position.y -= s.userData.spd;
                         s.lookAt(camera.position);
-                        if (s.position.y < -2) s.position.y = s.userData.resetH;
+                        if (s.position.y < -2) s.position.y = s.userData.rh;
                     });
 
                     // Holograms
-                    holograms.forEach((h) => {
+                    holos.forEach((h) => {
                         h.rotation.x += h.userData.rx;
                         h.rotation.y += h.userData.ry;
                         h.position.y =
-                            h.userData.baseY +
-                            Math.sin(t * h.userData.fSpd + h.userData.fOff) *
-                                0.6;
+                            h.userData.by +
+                            Math.sin(t * h.userData.fs + h.userData.fo) * 0.5;
                     });
 
                     // Particles
                     const pa = particles.geometry.attributes.position.array;
                     for (let i = 0; i < PCNT; i++) {
                         pa[i * 3 + 1] -= 0.025;
-                        pa[i * 3] += Math.sin(t * 0.5 + i) * 0.001;
-                        if (pa[i * 3 + 1] < -1) pa[i * 3 + 1] = 50;
+                        if (pa[i * 3 + 1] < -1) pa[i * 3 + 1] = 45;
                     }
                     particles.geometry.attributes.position.needsUpdate = true;
 
-                    // Walls pulse
-                    walls.forEach((w, i) => {
-                        w.material.emissiveIntensity =
-                            0.25 + Math.sin(t * 0.4 + i * 0.08) * 0.15;
-                    });
+                    // Walls
+                    for (let i = 0; i < walls.length; i++) {
+                        walls[i].material.emissiveIntensity =
+                            0.25 + Math.sin(t * 0.4 + i * 0.08) * 0.12;
+                    }
 
-                    // HUD
-                    updateHUD(t);
-                    updateMinimapPlayer();
+                    updHUD(t);
+                    drawMM();
 
-                    // Render
                     if (composer) composer.render();
                     else renderer.render(scene, camera);
                 }
-
-                // Resize
-                addEventListener("resize", () => {
-                    camera.aspect = innerWidth / innerHeight;
-                    camera.updateProjectionMatrix();
-                    renderer.setSize(innerWidth, innerHeight);
-                    if (composer) composer.setSize(innerWidth, innerHeight);
-                });
-
-                animate();
-                console.log("OMEGA_SYS initialized.");
-            } catch (err) {
-                document.body.innerHTML = `<div style="color:#ff3344;background:#000;padding:30px;font-family:monospace"><h2>[ SYSTEM ERROR ]</h2><p>${err.message}</p><pre>${err.stack}</pre></div>`;
-                console.error(err);
-            }
+                loop();
+                console.log("OMEGA_SYS online.");
+            })();
         </script>
     </body>
 </html>
