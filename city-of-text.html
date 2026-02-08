@@ -3,7 +3,7 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>City of Text - Hackers 1995</title>
+        <title>City of Text - Hackers 1995 [Enhanced]</title>
         <style>
             * {
                 margin: 0;
@@ -22,10 +22,16 @@
                 color: #00ff00;
                 font-size: 14px;
                 z-index: 100;
-                text-shadow: 0 0 10px #00ff00;
-                background: rgba(0, 0, 0, 0.7);
-                padding: 10px;
+                text-shadow:
+                    0 0 10px #00ff00,
+                    0 0 20px #00ff00;
+                background: rgba(0, 0, 0, 0.85);
+                padding: 15px;
                 border: 1px solid #00ff00;
+                border-radius: 5px;
+                box-shadow:
+                    0 0 20px rgba(0, 255, 0, 0.3),
+                    inset 0 0 10px rgba(0, 255, 0, 0.1);
             }
             #overlay {
                 position: absolute;
@@ -36,49 +42,104 @@
                 pointer-events: none;
                 background: repeating-linear-gradient(
                     0deg,
-                    rgba(0, 0, 0, 0.1) 0px,
-                    rgba(0, 0, 0, 0.1) 1px,
+                    rgba(0, 0, 0, 0.15) 0px,
+                    rgba(0, 0, 0, 0.15) 1px,
                     transparent 1px,
-                    transparent 2px
+                    transparent 3px
                 );
                 z-index: 50;
+            }
+            #vignette {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                pointer-events: none;
+                background: radial-gradient(
+                    ellipse at center,
+                    transparent 40%,
+                    rgba(0, 0, 0, 0.7) 100%
+                );
+                z-index: 49;
             }
             #crosshair {
                 position: absolute;
                 top: 50%;
                 left: 50%;
                 transform: translate(-50%, -50%);
-                color: #00ff00;
-                font-size: 24px;
+                color: #00ffff;
+                font-size: 28px;
                 z-index: 100;
-                text-shadow: 0 0 5px #00ff00;
+                text-shadow:
+                    0 0 10px #00ffff,
+                    0 0 20px #00ffff;
+                animation: pulse 1.5s ease-in-out infinite;
+            }
+            @keyframes pulse {
+                0%,
+                100% {
+                    opacity: 1;
+                    transform: translate(-50%, -50%) scale(1);
+                }
+                50% {
+                    opacity: 0.7;
+                    transform: translate(-50%, -50%) scale(1.1);
+                }
             }
             canvas {
                 display: block;
             }
+            #loading {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                color: #00ff00;
+                font-size: 24px;
+                z-index: 200;
+                text-shadow: 0 0 20px #00ff00;
+            }
         </style>
     </head>
     <body>
-        <div id="info">
+        <div id="loading">ЗАГРУЗКА МАТРИЦЫ...</div>
+        <div id="info" style="display: none">
             WASD / Стрелки - движение<br />
             Мышь - осмотр<br />
             Клик - захват курсора<br />
+            SHIFT - ускорение<br />
             ESC - освободить курсор
         </div>
         <div id="overlay"></div>
-        <div id="crosshair">+</div>
+        <div id="vignette"></div>
+        <div id="crosshair" style="display: none">◎</div>
 
-        <script src="https://unpkg.com/three@0.128.0/build/three.min.js"></script>
+        <script src="https://unpkg.com/three@0.150.0/build/three.min.js"></script>
+        <script src="https://unpkg.com/three@0.150.0/examples/js/postprocessing/EffectComposer.js"></script>
+        <script src="https://unpkg.com/three@0.150.0/examples/js/postprocessing/RenderPass.js"></script>
+        <script src="https://unpkg.com/three@0.150.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+        <script src="https://unpkg.com/three@0.150.0/examples/js/postprocessing/ShaderPass.js"></script>
+        <script src="https://unpkg.com/three@0.150.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+        <script src="https://unpkg.com/three@0.150.0/examples/js/shaders/CopyShader.js"></script>
         <script>
             try {
                 if (typeof THREE === "undefined") {
                     throw new Error("Three.js не загружен");
                 }
 
+                // Hide loading, show UI
+                setTimeout(() => {
+                    document.getElementById("loading").style.display = "none";
+                    document.getElementById("info").style.display = "block";
+                    document.getElementById("crosshair").style.display =
+                        "block";
+                }, 500);
+
                 // ============ SCENE SETUP ============
                 const scene = new THREE.Scene();
-                scene.background = new THREE.Color(0x000008);
-                scene.fog = new THREE.FogExp2(0x000008, 0.015);
+                scene.background = new THREE.Color(0x000510);
+                scene.fog = new THREE.FogExp2(0x000510, 0.012);
 
                 const camera = new THREE.PerspectiveCamera(
                     75,
@@ -88,15 +149,67 @@
                 );
                 camera.position.set(0, 2, 0);
 
-                const renderer = new THREE.WebGLRenderer({ antialias: true });
+                const renderer = new THREE.WebGLRenderer({
+                    antialias: true,
+                    powerPreference: "high-performance",
+                });
                 renderer.setSize(window.innerWidth, window.innerHeight);
-                renderer.setPixelRatio(window.devicePixelRatio);
+                renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+                renderer.toneMapping = THREE.ACESFilmicToneMapping;
+                renderer.toneMappingExposure = 1.2;
+                renderer.outputColorSpace = THREE.SRGBColorSpace;
                 document.body.appendChild(renderer.domElement);
 
+                // ============ POST-PROCESSING (BLOOM) ============
+                let composer;
+                if (typeof THREE.EffectComposer !== "undefined") {
+                    composer = new THREE.EffectComposer(renderer);
+                    const renderPass = new THREE.RenderPass(scene, camera);
+                    composer.addPass(renderPass);
+
+                    const bloomPass = new THREE.UnrealBloomPass(
+                        new THREE.Vector2(
+                            window.innerWidth,
+                            window.innerHeight,
+                        ),
+                        1.5, // strength
+                        0.4, // radius
+                        0.85, // threshold
+                    );
+                    composer.addPass(bloomPass);
+                }
+
+                // ============ LIGHTING ============
+                const ambientLight = new THREE.AmbientLight(0x111122, 0.5);
+                scene.add(ambientLight);
+
+                // Dynamic point lights
+                const pointLights = [];
+                const lightColors = [
+                    0x00ff00, 0x00ffff, 0xff00ff, 0xffff00, 0xff0066,
+                ];
+
+                for (let i = 0; i < 8; i++) {
+                    const color = lightColors[i % lightColors.length];
+                    const light = new THREE.PointLight(color, 2, 30);
+                    light.position.set(
+                        (Math.random() - 0.5) * 60,
+                        3 + Math.random() * 5,
+                        (Math.random() - 0.5) * 60,
+                    );
+                    scene.add(light);
+                    pointLights.push({
+                        light,
+                        baseY: light.position.y,
+                        speed: 0.5 + Math.random() * 1,
+                        phase: Math.random() * Math.PI * 2,
+                    });
+                }
+
                 // ============ MAZE GENERATION ============
-                const mazeSize = 21;
+                const mazeSize = 25;
                 const cellSize = 4;
-                const wallHeight = 8;
+                const wallHeight = 10;
 
                 // Generate maze using iterative backtracking (no stack overflow)
                 function generateMaze(width, height) {
@@ -163,56 +276,129 @@
 
                 // ============ TEXT TEXTURE GENERATION ============
                 const hackerChars =
-                    "01アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン{}[]<>=/\\#$%&@!?";
+                    "01アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン{}[]<>=/\\#$%&@!?∞∑∏∫√≈≠≤≥←→↑↓⌘⌥⎋⏎";
 
-                function createTextTexture(width, height, color) {
+                function createTextTexture(
+                    width,
+                    height,
+                    color,
+                    glowIntensity = 0.8,
+                ) {
                     const canvas = document.createElement("canvas");
                     canvas.width = width;
                     canvas.height = height;
                     const ctx = canvas.getContext("2d");
 
-                    ctx.fillStyle = "#000000";
+                    // Dark gradient background
+                    const gradient = ctx.createLinearGradient(0, 0, 0, height);
+                    gradient.addColorStop(0, "#000510");
+                    gradient.addColorStop(0.5, "#000205");
+                    gradient.addColorStop(1, "#000510");
+                    ctx.fillStyle = gradient;
                     ctx.fillRect(0, 0, width, height);
 
-                    ctx.font = "14px Courier New";
-                    ctx.fillStyle = color;
+                    // Add subtle grid lines
+                    ctx.strokeStyle = color;
+                    ctx.globalAlpha = 0.05;
+                    ctx.lineWidth = 1;
+                    for (let y = 0; y < height; y += 20) {
+                        ctx.beginPath();
+                        ctx.moveTo(0, y);
+                        ctx.lineTo(width, y);
+                        ctx.stroke();
+                    }
 
-                    for (let y = 14; y < height; y += 16) {
-                        for (let x = 0; x < width; x += 10) {
-                            if (Math.random() > 0.3) {
+                    ctx.font = "bold 16px Courier New";
+
+                    for (let y = 16; y < height; y += 18) {
+                        for (let x = 0; x < width; x += 12) {
+                            if (Math.random() > 0.25) {
                                 const char =
                                     hackerChars[
                                         Math.floor(
                                             Math.random() * hackerChars.length,
                                         )
                                     ];
-                                ctx.globalAlpha = 0.3 + Math.random() * 0.7;
+                                const alpha = 0.4 + Math.random() * 0.6;
+                                ctx.globalAlpha = alpha;
+
+                                // Glow effect
+                                ctx.shadowColor = color;
+                                ctx.shadowBlur = 8 * glowIntensity;
+                                ctx.fillStyle = color;
                                 ctx.fillText(char, x, y);
                             }
                         }
                     }
 
+                    // Add some bright "active" characters
+                    ctx.globalAlpha = 1;
+                    ctx.shadowBlur = 15;
+                    for (let i = 0; i < 5; i++) {
+                        const char =
+                            hackerChars[
+                                Math.floor(Math.random() * hackerChars.length)
+                            ];
+                        const x = Math.random() * (width - 12);
+                        const y = 16 + Math.random() * (height - 32);
+                        ctx.fillText(char, x, y);
+                    }
+
                     const texture = new THREE.CanvasTexture(canvas);
                     texture.wrapS = THREE.RepeatWrapping;
                     texture.wrapT = THREE.RepeatWrapping;
+                    texture.anisotropy =
+                        renderer.capabilities.getMaxAnisotropy();
                     return texture;
                 }
 
-                // ============ MATERIALS ============
+                // Create emissive glow texture
+                function createGlowTexture(color) {
+                    const canvas = document.createElement("canvas");
+                    canvas.width = 64;
+                    canvas.height = 64;
+                    const ctx = canvas.getContext("2d");
+
+                    const gradient = ctx.createRadialGradient(
+                        32,
+                        32,
+                        0,
+                        32,
+                        32,
+                        32,
+                    );
+                    gradient.addColorStop(0, color);
+                    gradient.addColorStop(0.5, color + "80");
+                    gradient.addColorStop(1, "transparent");
+                    ctx.fillStyle = gradient;
+                    ctx.fillRect(0, 0, 64, 64);
+
+                    return new THREE.CanvasTexture(canvas);
+                }
+
+                // ============ ENHANCED MATERIALS ============
                 const wallColors = [
                     "#00ff00",
                     "#00ffff",
                     "#ff00ff",
                     "#ffff00",
                     "#00ff88",
+                    "#ff0066",
+                    "#8800ff",
                 ];
+
                 const wallMaterials = wallColors.map((color) => {
-                    const texture = createTextTexture(256, 512, color);
-                    return new THREE.MeshBasicMaterial({
+                    const texture = createTextTexture(512, 1024, color, 1.0);
+                    return new THREE.MeshStandardMaterial({
                         map: texture,
+                        emissive: new THREE.Color(color),
+                        emissiveIntensity: 0.3,
+                        emissiveMap: texture,
                         transparent: true,
-                        opacity: 0.9,
+                        opacity: 0.95,
                         side: THREE.DoubleSide,
+                        metalness: 0.2,
+                        roughness: 0.8,
                     });
                 });
 
@@ -250,114 +436,238 @@
 
                 function createDataStream() {
                     const canvas = document.createElement("canvas");
-                    canvas.width = 32;
-                    canvas.height = 256;
+                    canvas.width = 48;
+                    canvas.height = 512;
                     const ctx = canvas.getContext("2d");
 
-                    ctx.fillStyle = "#000";
-                    ctx.fillRect(0, 0, 32, 256);
-                    ctx.font = "12px Courier New";
-                    ctx.fillStyle = "#00ff00";
+                    // Gradient background
+                    const gradient = ctx.createLinearGradient(0, 0, 0, 512);
+                    gradient.addColorStop(0, "transparent");
+                    gradient.addColorStop(0.1, "#00ff0010");
+                    gradient.addColorStop(0.9, "#00ff0040");
+                    gradient.addColorStop(1, "transparent");
+                    ctx.fillStyle = gradient;
+                    ctx.fillRect(0, 0, 48, 512);
 
-                    for (let y = 12; y < 256; y += 14) {
+                    ctx.font = "bold 14px Courier New";
+                    ctx.shadowColor = "#00ff00";
+                    ctx.shadowBlur = 10;
+
+                    for (let y = 14; y < 512; y += 16) {
                         const char =
                             hackerChars[
                                 Math.floor(Math.random() * hackerChars.length)
                             ];
-                        ctx.globalAlpha = Math.random();
-                        ctx.fillText(char, 8, y);
+                        ctx.globalAlpha = 0.3 + Math.random() * 0.7;
+                        ctx.fillStyle = y > 400 ? "#ffffff" : "#00ff00";
+                        ctx.fillText(char, 16, y);
                     }
 
                     const texture = new THREE.CanvasTexture(canvas);
-                    const geometry = new THREE.PlaneGeometry(0.5, 4);
+                    const geometry = new THREE.PlaneGeometry(0.6, 6);
+                    const streamColor =
+                        Math.random() > 0.7 ? 0x00ffff : 0x00ff00;
                     const material = new THREE.MeshBasicMaterial({
                         map: texture,
                         transparent: true,
-                        opacity: 0.8,
+                        opacity: 0.9,
                         side: THREE.DoubleSide,
+                        blending: THREE.AdditiveBlending,
                     });
 
                     const stream = new THREE.Mesh(geometry, material);
                     stream.position.set(
-                        (Math.random() - 0.5) * mazeSize * cellSize,
-                        Math.random() * 20 + 5,
-                        (Math.random() - 0.5) * mazeSize * cellSize,
+                        (Math.random() - 0.5) * mazeSize * cellSize * 1.2,
+                        Math.random() * 25 + 8,
+                        (Math.random() - 0.5) * mazeSize * cellSize * 1.2,
                     );
                     stream.userData = {
-                        speed: 0.02 + Math.random() * 0.05,
+                        speed: 0.03 + Math.random() * 0.08,
                         rotSpeed: (Math.random() - 0.5) * 0.02,
+                        resetHeight: 30 + Math.random() * 10,
                     };
 
                     return stream;
                 }
 
-                for (let i = 0; i < 100; i++) {
+                for (let i = 0; i < 150; i++) {
                     const stream = createDataStream();
                     scene.add(stream);
                     dataStreams.push(stream);
                 }
 
-                // ============ FLOOR GRID ============
-                const floorSize = mazeSize * cellSize * 1.5;
+                // ============ REFLECTIVE FLOOR ============
+                const floorSize = mazeSize * cellSize * 2;
+
+                // Main reflective floor
                 const floorGeometry = new THREE.PlaneGeometry(
                     floorSize,
                     floorSize,
-                    50,
-                    50,
                 );
-                const floorMaterial = new THREE.MeshBasicMaterial({
-                    color: 0x001100,
-                    wireframe: true,
-                    transparent: true,
-                    opacity: 0.3,
+                const floorMaterial = new THREE.MeshStandardMaterial({
+                    color: 0x050510,
+                    metalness: 0.9,
+                    roughness: 0.2,
+                    envMapIntensity: 0.5,
                 });
                 const floor = new THREE.Mesh(floorGeometry, floorMaterial);
                 floor.rotation.x = -Math.PI / 2;
-                floor.position.y = 0;
+                floor.position.y = -0.01;
                 scene.add(floor);
 
-                // Grid lines
-                const gridHelper = new THREE.GridHelper(
-                    floorSize,
-                    50,
-                    0x004400,
-                    0x002200,
-                );
-                scene.add(gridHelper);
+                // Neon grid lines
+                const gridMaterial = new THREE.LineBasicMaterial({
+                    color: 0x00ff88,
+                    transparent: true,
+                    opacity: 0.4,
+                });
+                const gridGeometry = new THREE.BufferGeometry();
+                const gridPoints = [];
+                const gridSpacing = 4;
+                const gridExtent = floorSize / 2;
 
-                // ============ TOWER STRUCTURES ============
-                for (let i = 0; i < 20; i++) {
-                    const height = 15 + Math.random() * 30;
-                    const towerGeo = new THREE.BoxGeometry(3, height, 3);
-                    const towerMat = new THREE.MeshBasicMaterial({
-                        map: createTextTexture(
-                            128,
-                            512,
-                            wallColors[
-                                Math.floor(Math.random() * wallColors.length)
-                            ],
-                        ),
+                for (let i = -gridExtent; i <= gridExtent; i += gridSpacing) {
+                    gridPoints.push(-gridExtent, 0.01, i, gridExtent, 0.01, i);
+                    gridPoints.push(i, 0.01, -gridExtent, i, 0.01, gridExtent);
+                }
+                gridGeometry.setAttribute(
+                    "position",
+                    new THREE.Float32BufferAttribute(gridPoints, 3),
+                );
+                const neonGrid = new THREE.LineSegments(
+                    gridGeometry,
+                    gridMaterial,
+                );
+                scene.add(neonGrid);
+
+                // ============ ENHANCED TOWER STRUCTURES ============
+                const towers = [];
+                for (let i = 0; i < 35; i++) {
+                    const height = 20 + Math.random() * 50;
+                    const width = 2 + Math.random() * 4;
+                    const towerGeo = new THREE.BoxGeometry(
+                        width,
+                        height,
+                        width,
+                    );
+                    const towerColor =
+                        wallColors[
+                            Math.floor(Math.random() * wallColors.length)
+                        ];
+                    const towerMat = new THREE.MeshStandardMaterial({
+                        map: createTextTexture(256, 1024, towerColor, 0.6),
+                        emissive: new THREE.Color(towerColor),
+                        emissiveIntensity: 0.2,
                         transparent: true,
-                        opacity: 0.7,
+                        opacity: 0.85,
+                        metalness: 0.3,
+                        roughness: 0.7,
                     });
                     const tower = new THREE.Mesh(towerGeo, towerMat);
                     tower.position.set(
-                        (Math.random() - 0.5) * floorSize * 0.8,
+                        (Math.random() - 0.5) * floorSize * 0.85,
                         height / 2,
-                        (Math.random() - 0.5) * floorSize * 0.8,
+                        (Math.random() - 0.5) * floorSize * 0.85,
                     );
                     scene.add(tower);
+                    towers.push(tower);
+
+                    // Add neon edge lights to some towers
+                    if (Math.random() > 0.5) {
+                        const edgeGeo = new THREE.EdgesGeometry(towerGeo);
+                        const edgeMat = new THREE.LineBasicMaterial({
+                            color: new THREE.Color(towerColor),
+                            transparent: true,
+                            opacity: 0.8,
+                        });
+                        const edges = new THREE.LineSegments(edgeGeo, edgeMat);
+                        edges.position.copy(tower.position);
+                        scene.add(edges);
+                    }
                 }
 
-                // ============ PARTICLE SYSTEM ============
-                const particleCount = 500;
+                // ============ NEON TUBES ============
+                function createNeonTube(start, end, color) {
+                    const direction = new THREE.Vector3().subVectors(
+                        end,
+                        start,
+                    );
+                    const length = direction.length();
+
+                    const geometry = new THREE.CylinderGeometry(
+                        0.08,
+                        0.08,
+                        length,
+                        8,
+                    );
+                    const material = new THREE.MeshBasicMaterial({
+                        color: color,
+                        transparent: true,
+                        opacity: 0.9,
+                    });
+
+                    const tube = new THREE.Mesh(geometry, material);
+                    tube.position
+                        .copy(start)
+                        .add(direction.multiplyScalar(0.5));
+                    tube.lookAt(end);
+                    tube.rotateX(Math.PI / 2);
+
+                    // Glow sprite at ends
+                    const glowMat = new THREE.SpriteMaterial({
+                        color: color,
+                        transparent: true,
+                        opacity: 0.6,
+                        blending: THREE.AdditiveBlending,
+                    });
+                    const glowStart = new THREE.Sprite(glowMat);
+                    glowStart.position.copy(start);
+                    glowStart.scale.set(0.5, 0.5, 1);
+                    scene.add(glowStart);
+
+                    const glowEnd = new THREE.Sprite(glowMat.clone());
+                    glowEnd.position.copy(end);
+                    glowEnd.scale.set(0.5, 0.5, 1);
+                    scene.add(glowEnd);
+
+                    return tube;
+                }
+
+                // Add random neon tubes
+                for (let i = 0; i < 40; i++) {
+                    const x = (Math.random() - 0.5) * floorSize * 0.7;
+                    const z = (Math.random() - 0.5) * floorSize * 0.7;
+                    const y = 1 + Math.random() * 15;
+                    const length = 2 + Math.random() * 8;
+                    const color = new THREE.Color(
+                        wallColors[
+                            Math.floor(Math.random() * wallColors.length)
+                        ],
+                    );
+
+                    const isHorizontal = Math.random() > 0.5;
+                    let start, end;
+                    if (isHorizontal) {
+                        start = new THREE.Vector3(x - length / 2, y, z);
+                        end = new THREE.Vector3(x + length / 2, y, z);
+                    } else {
+                        start = new THREE.Vector3(x, y, z - length / 2);
+                        end = new THREE.Vector3(x, y, z + length / 2);
+                    }
+
+                    scene.add(createNeonTube(start, end, color));
+                }
+
+                // ============ ENHANCED PARTICLE SYSTEM ============
+                const particleCount = 1000;
                 const particleGeometry = new THREE.BufferGeometry();
                 const positions = new Float32Array(particleCount * 3);
                 const colors = new Float32Array(particleCount * 3);
+                const sizes = new Float32Array(particleCount);
 
                 for (let i = 0; i < particleCount; i++) {
                     positions[i * 3] = (Math.random() - 0.5) * floorSize;
-                    positions[i * 3 + 1] = Math.random() * 30;
+                    positions[i * 3 + 1] = Math.random() * 40;
                     positions[i * 3 + 2] = (Math.random() - 0.5) * floorSize;
 
                     const color = new THREE.Color(
@@ -368,6 +678,8 @@
                     colors[i * 3] = color.r;
                     colors[i * 3 + 1] = color.g;
                     colors[i * 3 + 2] = color.b;
+
+                    sizes[i] = 0.1 + Math.random() * 0.4;
                 }
 
                 particleGeometry.setAttribute(
@@ -378,12 +690,18 @@
                     "color",
                     new THREE.BufferAttribute(colors, 3),
                 );
+                particleGeometry.setAttribute(
+                    "size",
+                    new THREE.BufferAttribute(sizes, 1),
+                );
 
                 const particleMaterial = new THREE.PointsMaterial({
-                    size: 0.3,
+                    size: 0.25,
                     vertexColors: true,
                     transparent: true,
-                    opacity: 0.6,
+                    opacity: 0.8,
+                    blending: THREE.AdditiveBlending,
+                    sizeAttenuation: true,
                 });
 
                 const particles = new THREE.Points(
@@ -392,13 +710,76 @@
                 );
                 scene.add(particles);
 
+                // ============ FLOATING HOLOGRAMS ============
+                function createHologram() {
+                    const shapes = [
+                        "box",
+                        "icosahedron",
+                        "octahedron",
+                        "torus",
+                    ];
+                    const shape =
+                        shapes[Math.floor(Math.random() * shapes.length)];
+                    let geometry;
+
+                    switch (shape) {
+                        case "box":
+                            geometry = new THREE.BoxGeometry(1.5, 1.5, 1.5);
+                            break;
+                        case "icosahedron":
+                            geometry = new THREE.IcosahedronGeometry(1, 0);
+                            break;
+                        case "octahedron":
+                            geometry = new THREE.OctahedronGeometry(1, 0);
+                            break;
+                        case "torus":
+                            geometry = new THREE.TorusGeometry(0.8, 0.3, 8, 16);
+                            break;
+                    }
+
+                    const color = new THREE.Color(
+                        wallColors[
+                            Math.floor(Math.random() * wallColors.length)
+                        ],
+                    );
+                    const material = new THREE.MeshBasicMaterial({
+                        color: color,
+                        wireframe: true,
+                        transparent: true,
+                        opacity: 0.7,
+                    });
+
+                    const hologram = new THREE.Mesh(geometry, material);
+                    hologram.position.set(
+                        (Math.random() - 0.5) * mazeSize * cellSize,
+                        3 + Math.random() * 8,
+                        (Math.random() - 0.5) * mazeSize * cellSize,
+                    );
+                    hologram.userData = {
+                        rotSpeedX: (Math.random() - 0.5) * 0.02,
+                        rotSpeedY: (Math.random() - 0.5) * 0.03,
+                        floatSpeed: 0.5 + Math.random(),
+                        floatOffset: Math.random() * Math.PI * 2,
+                        baseY: hologram.position.y,
+                    };
+
+                    return hologram;
+                }
+
+                const holograms = [];
+                for (let i = 0; i < 25; i++) {
+                    const hologram = createHologram();
+                    scene.add(hologram);
+                    holograms.push(hologram);
+                }
+
                 // ============ CONTROLS ============
                 const keys = {};
-                const velocity = new THREE.Vector3();
                 const direction = new THREE.Vector3();
                 let yaw = 0;
                 let pitch = 0;
-                const moveSpeed = 0.25;
+                let moveSpeed = 0.2;
+                const sprintMultiplier = 2.5;
                 const playerRadius = 0.5;
 
                 window.addEventListener("keydown", function (e) {
@@ -413,6 +794,8 @@
                             "ArrowDown",
                             "ArrowLeft",
                             "ArrowRight",
+                            "ShiftLeft",
+                            "ShiftRight",
                         ].includes(e.code)
                     ) {
                         e.preventDefault();
@@ -484,16 +867,27 @@
                 }
 
                 // ============ ANIMATION LOOP ============
+                let lastTime = performance.now();
+
                 function animate() {
                     requestAnimationFrame(animate);
+
+                    const currentTime = performance.now();
+                    const deltaTime = (currentTime - lastTime) / 1000;
+                    lastTime = currentTime;
+                    const time = currentTime * 0.001;
 
                     // Update camera rotation
                     camera.rotation.order = "YXZ";
                     camera.rotation.y = yaw;
                     camera.rotation.x = pitch;
 
-                    // Movement
+                    // Movement with sprint
                     direction.set(0, 0, 0);
+                    const isSprinting = keys["ShiftLeft"] || keys["ShiftRight"];
+                    const currentSpeed = isSprinting
+                        ? moveSpeed * sprintMultiplier
+                        : moveSpeed;
 
                     if (keys["KeyW"] || keys["ArrowUp"]) direction.z -= 1;
                     if (keys["KeyS"] || keys["ArrowDown"]) direction.z += 1;
@@ -506,11 +900,18 @@
                             new THREE.Vector3(0, 1, 0),
                             yaw,
                         );
-
-                        // Direct movement (collision disabled for now)
-                        camera.position.x += direction.x * moveSpeed;
-                        camera.position.z += direction.z * moveSpeed;
+                        camera.position.x += direction.x * currentSpeed;
+                        camera.position.z += direction.z * currentSpeed;
                     }
+
+                    // Animate dynamic lights
+                    pointLights.forEach((data, i) => {
+                        data.light.position.y =
+                            data.baseY +
+                            Math.sin(time * data.speed + data.phase) * 2;
+                        data.light.intensity =
+                            1.5 + Math.sin(time * 2 + i) * 0.5;
+                    });
 
                     // Animate data streams
                     dataStreams.forEach((stream) => {
@@ -519,29 +920,52 @@
                         stream.lookAt(camera.position);
 
                         if (stream.position.y < 0) {
-                            stream.position.y = 25;
+                            stream.position.y = stream.userData.resetHeight;
                         }
                     });
 
+                    // Animate holograms
+                    holograms.forEach((hologram) => {
+                        hologram.rotation.x += hologram.userData.rotSpeedX;
+                        hologram.rotation.y += hologram.userData.rotSpeedY;
+                        hologram.position.y =
+                            hologram.userData.baseY +
+                            Math.sin(
+                                time * hologram.userData.floatSpeed +
+                                    hologram.userData.floatOffset,
+                            ) *
+                                0.5;
+                        hologram.material.opacity =
+                            0.5 + Math.sin(time * 2) * 0.2;
+                    });
+
                     // Animate particles
-                    const positions =
+                    const particlePositions =
                         particles.geometry.attributes.position.array;
                     for (let i = 0; i < particleCount; i++) {
-                        positions[i * 3 + 1] -= 0.02;
-                        if (positions[i * 3 + 1] < 0) {
-                            positions[i * 3 + 1] = 30;
+                        particlePositions[i * 3 + 1] -= 0.03;
+                        // Add slight horizontal drift
+                        particlePositions[i * 3] += Math.sin(time + i) * 0.002;
+                        if (particlePositions[i * 3 + 1] < 0) {
+                            particlePositions[i * 3 + 1] = 40;
                         }
                     }
                     particles.geometry.attributes.position.needsUpdate = true;
 
-                    // Animate wall textures (subtle pulse)
-                    const time = Date.now() * 0.001;
+                    // Animate wall emissive intensity
                     walls.forEach((wall, i) => {
+                        wall.material.emissiveIntensity =
+                            0.2 + Math.sin(time * 0.5 + i * 0.1) * 0.15;
                         wall.material.opacity =
-                            0.7 + Math.sin(time + i * 0.1) * 0.2;
+                            0.85 + Math.sin(time + i * 0.1) * 0.1;
                     });
 
-                    renderer.render(scene, camera);
+                    // Render with post-processing
+                    if (composer) {
+                        composer.render();
+                    } else {
+                        renderer.render(scene, camera);
+                    }
                 }
 
                 // ============ WINDOW RESIZE ============
@@ -549,15 +973,19 @@
                     camera.aspect = window.innerWidth / window.innerHeight;
                     camera.updateProjectionMatrix();
                     renderer.setSize(window.innerWidth, window.innerHeight);
+                    if (composer) {
+                        composer.setSize(window.innerWidth, window.innerHeight);
+                    }
                 });
 
                 // Start position in maze
                 camera.position.set(
                     (-mazeSize / 2 + 1.5) * cellSize,
-                    2,
+                    2.5,
                     (-mazeSize / 2 + 1.5) * cellSize,
                 );
 
+                console.log("City of Text Enhanced loaded successfully!");
                 animate();
             } catch (error) {
                 document.body.innerHTML =
