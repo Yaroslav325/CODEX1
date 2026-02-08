@@ -1,5 +1,5 @@
 // ============================================
-// FASHION STORE - Main JavaScript
+// FASHION STORE - Enhanced JavaScript
 // ============================================
 
 const API_URL = '/api';
@@ -17,11 +17,14 @@ let currentUser = null;
 
 // State
 let products = [];
+let wishlist = [];
 let cart = { items: [], total: 0 };
 let selectedProduct = null;
 let selectedSize = null;
 let selectedColor = null;
 let quantity = 1;
+let appliedPromocode = null;
+let discount = 0;
 
 // ============================================
 // INITIALIZATION
@@ -31,8 +34,10 @@ document.addEventListener('DOMContentLoaded', () => {
     loadProducts();
     loadCategories();
     loadCart();
+    loadWishlist();
     checkAuth();
     setupEventListeners();
+    setupScrollEffects();
 });
 
 function setupEventListeners() {
@@ -48,6 +53,15 @@ function setupEventListeners() {
     
     // Cart
     document.getElementById('cartBtn').addEventListener('click', () => openModal('cartModal'));
+    
+    // Wishlist
+    const wishlistBtn = document.getElementById('wishlistBtn');
+    if (wishlistBtn) {
+        wishlistBtn.addEventListener('click', () => {
+            renderWishlist();
+            openModal('wishlistModal');
+        });
+    }
     
     // Auth
     document.getElementById('authBtn').addEventListener('click', () => openModal('authModal'));
@@ -65,6 +79,23 @@ function setupEventListeners() {
     });
 }
 
+function setupScrollEffects() {
+    const backToTop = document.getElementById('backToTop');
+    if (backToTop) {
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 300) {
+                backToTop.classList.add('visible');
+            } else {
+                backToTop.classList.remove('visible');
+            }
+        });
+    }
+}
+
+function scrollToTop() {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
 // ============================================
 // PRODUCTS
 // ============================================
@@ -74,10 +105,31 @@ async function loadProducts() {
         const response = await fetch(`${API_URL}/products`);
         products = await response.json();
         renderProducts(products);
+        renderBestsellers();
+        renderNewArrivals();
+        renderSaleItems();
     } catch (error) {
         console.error('Error loading products:', error);
         showToast('Ошибка загрузки товаров', 'error');
     }
+}
+
+function renderBestsellers() {
+    const bestsellers = products.filter(p => p.badge === 'bestseller').slice(0, 4);
+    const grid = document.getElementById('bestsellersGrid');
+    if (grid) grid.innerHTML = bestsellers.map(p => renderProductCard(p)).join('');
+}
+
+function renderNewArrivals() {
+    const newItems = products.filter(p => p.badge === 'new').slice(0, 4);
+    const grid = document.getElementById('newArrivalsGrid');
+    if (grid) grid.innerHTML = newItems.map(p => renderProductCard(p)).join('');
+}
+
+function renderSaleItems() {
+    const saleItems = products.filter(p => p.badge === 'sale' || p.oldPrice).slice(0, 4);
+    const grid = document.getElementById('saleGrid');
+    if (grid) grid.innerHTML = saleItems.map(p => renderProductCard(p)).join('');
 }
 
 async function loadCategories() {
@@ -85,16 +137,10 @@ async function loadCategories() {
         const response = await fetch(`${API_URL}/products/meta/categories`);
         const categories = await response.json();
         
-        // Render category cards
         const categoryIcons = {
-            'футболки': '👕',
-            'джинсы': '👖',
-            'худи': '🧥',
-            'платья': '👗',
-            'куртки': '🧥',
-            'брюки': '👖',
-            'рубашки': '👔',
-            'свитера': '🧶'
+            'футболки': '👕', 'джинсы': '👖', 'худи': '🧥', 'платья': '👗',
+            'куртки': '🧥', 'брюки': '👖', 'рубашки': '👔', 'свитера': '🧶',
+            'обувь': '👟', 'аксессуары': '👜'
         };
         
         const grid = document.getElementById('categoriesGrid');
@@ -118,6 +164,53 @@ async function loadCategories() {
     }
 }
 
+function renderProductCard(product) {
+    const isInWishlist = wishlist.some(w => w.id === product.id);
+    const discountPercent = product.oldPrice ? Math.round((1 - product.price / product.oldPrice) * 100) : 0;
+    
+    let badgeHtml = '';
+    if (product.badge === 'new') {
+        badgeHtml = '<span class="product-badge badge-new">Новинка</span>';
+    } else if (product.badge === 'sale' || product.oldPrice) {
+        badgeHtml = `<span class="product-badge badge-sale">-${discountPercent}%</span>`;
+    } else if (product.badge === 'bestseller') {
+        badgeHtml = '<span class="product-badge badge-bestseller">Хит</span>';
+    } else if (product.badge === 'premium') {
+        badgeHtml = '<span class="product-badge badge-premium">Premium</span>';
+    }
+    
+    const ratingHtml = product.rating ? `
+        <div class="product-rating">
+            <span class="rating-stars">${'★'.repeat(Math.floor(product.rating))}</span>
+            <span class="rating-count">(${product.reviewCount || 0})</span>
+        </div>
+    ` : '';
+    
+    return `
+        <div class="product-card" onclick="openProduct('${product.id}')">
+            ${badgeHtml}
+            <div class="product-actions" onclick="event.stopPropagation()">
+                <button class="product-action-btn ${isInWishlist ? 'wishlist-active' : ''}" 
+                        onclick="toggleWishlist('${product.id}')" title="В избранное">
+                    ${isInWishlist ? '❤️' : '🤍'}
+                </button>
+                <button class="product-action-btn" onclick="quickAddToCart('${product.id}')" title="В корзину">🛒</button>
+            </div>
+            <img class="product-image" src="${product.image}" alt="${product.name}" 
+                 onerror="this.src='https://via.placeholder.com/400x300?text=No+Image'">
+            <div class="product-info">
+                <div class="product-category">${product.category}</div>
+                ${ratingHtml}
+                <h3 class="product-name">${product.name}</h3>
+                <div class="product-price">
+                    ${formatPrice(product.price)} ₽
+                    ${product.oldPrice ? `<span class="old-price">${formatPrice(product.oldPrice)} ₽</span>` : ''}
+                </div>
+            </div>
+        </div>
+    `;
+}
+
 function renderProducts(productsToRender) {
     const grid = document.getElementById('productsGrid');
     
@@ -131,17 +224,7 @@ function renderProducts(productsToRender) {
         return;
     }
     
-    grid.innerHTML = productsToRender.map(product => `
-        <div class="product-card" onclick="openProduct('${product.id}')">
-            <img class="product-image" src="${product.image}" alt="${product.name}" 
-                 onerror="this.src='https://via.placeholder.com/400x300?text=No+Image'">
-            <div class="product-info">
-                <div class="product-category">${product.category}</div>
-                <h3 class="product-name">${product.name}</h3>
-                <div class="product-price">${formatPrice(product.price)} ₽</div>
-            </div>
-        </div>
-    `).join('');
+    grid.innerHTML = productsToRender.map(p => renderProductCard(p)).join('');
 }
 
 function selectCategory(category) {
@@ -320,6 +403,7 @@ async function addToCart() {
 
 function renderCart() {
     const cartItems = document.getElementById('cartItems');
+    const promocodeSection = document.querySelector('.promocode-section');
     
     if (cart.items.length === 0) {
         cartItems.innerHTML = `
@@ -329,6 +413,7 @@ function renderCart() {
             </div>
         `;
         document.getElementById('checkoutBtn').style.display = 'none';
+        if (promocodeSection) promocodeSection.style.display = 'none';
     } else {
         cartItems.innerHTML = cart.items.map(item => `
             <div class="cart-item">
@@ -353,9 +438,10 @@ function renderCart() {
             </div>
         `).join('');
         document.getElementById('checkoutBtn').style.display = 'block';
+        if (promocodeSection) promocodeSection.style.display = 'block';
     }
     
-    document.getElementById('totalAmount').textContent = formatPrice(cart.total);
+    updateCartTotals();
 }
 
 async function updateCartItem(itemId, quantity) {
@@ -381,6 +467,164 @@ async function removeFromCart(itemId) {
     } catch (error) {
         console.error('Error removing from cart:', error);
     }
+}
+
+async function quickAddToCart(productId) {
+    const product = products.find(p => p.id === productId);
+    if (!product) return;
+    
+    try {
+        const response = await fetch(`${API_URL}/cart/add`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                sessionId,
+                productId,
+                size: product.sizes?.[0] || null,
+                color: product.colors?.[0] || null,
+                quantity: 1
+            })
+        });
+        
+        if ((await response.json()).success) {
+            showToast('Товар добавлен в корзину', 'success');
+            loadCart();
+        }
+    } catch (error) {
+        console.error('Error quick add:', error);
+    }
+}
+
+// ============================================
+// WISHLIST
+// ============================================
+
+async function loadWishlist() {
+    try {
+        const response = await fetch(`${API_URL}/wishlist/${sessionId}`);
+        wishlist = await response.json();
+        updateWishlistCount();
+    } catch (error) {
+        wishlist = [];
+    }
+}
+
+function updateWishlistCount() {
+    const el = document.getElementById('wishlistCount');
+    if (el) el.textContent = wishlist.length;
+}
+
+async function toggleWishlist(productId) {
+    const isInWishlist = wishlist.some(w => w.id === productId);
+    
+    try {
+        if (isInWishlist) {
+            await fetch(`${API_URL}/wishlist/remove/${sessionId}/${productId}`, { method: 'DELETE' });
+            showToast('Удалено из избранного', 'success');
+        } else {
+            await fetch(`${API_URL}/wishlist/add`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sessionId, productId })
+            });
+            showToast('Добавлено в избранное', 'success');
+        }
+        await loadWishlist();
+        renderProducts(products);
+        renderBestsellers();
+        renderNewArrivals();
+        renderSaleItems();
+    } catch (error) {
+        showToast('Ошибка', 'error');
+    }
+}
+
+function renderWishlist() {
+    const container = document.getElementById('wishlistItems');
+    if (!container) return;
+    
+    if (wishlist.length === 0) {
+        container.innerHTML = `<div class="cart-empty"><div class="cart-empty-icon">❤️</div><p>Избранное пусто</p></div>`;
+        return;
+    }
+    
+    container.innerHTML = wishlist.map(item => `
+        <div class="wishlist-item">
+            <img class="wishlist-item-image" src="${item.image}" alt="${item.name}">
+            <div class="wishlist-item-info">
+                <div class="wishlist-item-name">${item.name}</div>
+                <div class="wishlist-item-price">${formatPrice(item.price)} ₽</div>
+            </div>
+            <div class="wishlist-item-actions">
+                <button class="btn btn-small btn-primary" onclick="quickAddToCart('${item.id}'); closeModal('wishlistModal');">🛒</button>
+                <button class="btn btn-small btn-secondary" onclick="toggleWishlist('${item.id}'); renderWishlist();">✕</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+// ============================================
+// PROMOCODES
+// ============================================
+
+async function applyPromocode() {
+    const code = document.getElementById('promocodeInput').value.trim();
+    const resultDiv = document.getElementById('promocodeResult');
+    
+    if (!code) {
+        resultDiv.className = 'error';
+        resultDiv.textContent = 'Введите промокод';
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${API_URL}/promocodes/validate`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code, cartTotal: cart.total })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            appliedPromocode = result.code;
+            discount = result.discount;
+            resultDiv.className = 'success';
+            resultDiv.textContent = result.message;
+            updateCartTotals();
+        } else {
+            resultDiv.className = 'error';
+            resultDiv.textContent = result.error;
+        }
+    } catch (error) {
+        resultDiv.className = 'error';
+        resultDiv.textContent = 'Ошибка проверки';
+    }
+}
+
+function updateCartTotals() {
+    const subtotal = cart.total;
+    const total = subtotal - discount;
+    
+    const subtotalEl = document.getElementById('subtotalAmount');
+    if (subtotalEl) subtotalEl.textContent = formatPrice(subtotal) + ' ₽';
+    document.getElementById('totalAmount').textContent = formatPrice(total);
+    
+    const discountRow = document.getElementById('discountRow');
+    if (discountRow) {
+        if (discount > 0) {
+            discountRow.style.display = 'flex';
+            document.getElementById('discountAmount').textContent = '-' + formatPrice(discount) + ' ₽';
+        } else {
+            discountRow.style.display = 'none';
+        }
+    }
+}
+
+function subscribeNewsletter(e) {
+    e.preventDefault();
+    showToast('Спасибо за подписку!', 'success');
+    e.target.reset();
 }
 
 // ============================================
