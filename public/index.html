@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FASHION STORE - Интернет-магазин одежды</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Promo Banner -->
+    <div class="promo-banner">
+        <div class="container">
+            🎉 Используйте промокод <strong>WELCOME10</strong> для скидки 10% на первый заказ!
+        </div>
+    </div>
+    
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <a href="/" class="logo">
+                <span class="logo-icon">👗</span>
+                FASHION STORE
+            </a>
+            
+            <nav class="nav">
+                <a href="#bestsellers" class="nav-link">Хиты</a>
+                <a href="#new" class="nav-link">Новинки</a>
+                <a href="#sale" class="nav-link nav-link-sale">🔥 Sale</a>
+                <a href="#catalog" class="nav-link">Каталог</a>
+            </nav>
+            
+            <div class="header-actions">
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="Поиск товаров...">
+                    <button id="searchBtn">🔍</button>
+                </div>
+                <button class="wishlist-btn" id="wishlistBtn" title="Избранное">
+                    ❤️ <span id="wishlistCount">0</span>
+                </button>
+                <button class="cart-btn" id="cartBtn">
+                    🛒 <span id="cartCount">0</span>
+                </button>
+                <button class="auth-btn" id="authBtn">👤 Войти</button>
+            </div>
+        </div>
+    </header>
+    
+    <!-- Hero Section with Slider -->
+    <section class="hero">
+        <div class="hero-slider">
+            <div class="hero-slide active" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <div class="container">
+                    <div class="hero-content">
+                        <span class="hero-badge">Новая коллекция 2024</span>
+                        <h1>Стильная одежда<br>для современных людей</h1>
+                        <p>Откройте для себя последние тенденции моды по доступным ценам</p>
+                        <div class="hero-buttons">
+                            <a href="#catalog" class="btn btn-primary btn-large">Смотреть каталог</a>
+                            <a href="#sale" class="btn btn-outline btn-large">Распродажа</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="hero-stats">
+            <div class="stat">
+                <span class="stat-number">10K+</span>
+                <span class="stat-label">Довольных клиентов</span>
+            </div>
+            <div class="stat">
+                <span class="stat-number">500+</span>
+                <span class="stat-label">Товаров в каталоге</span>
+            </div>
+            <div class="stat">
+                <span class="stat-number">4.9★</span>
+                <span class="stat-label">Рейтинг магазина</span>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Bestsellers -->
+    <section class="bestsellers" id="bestsellers">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">🔥 Хиты продаж</h2>
+                <p class="section-subtitle">Самые популярные товары по мнению наших покупателей</p>
+            </div>
+            <div class="products-slider" id="bestsellersGrid">
+                <!-- Bestsellers will be loaded dynamically -->
+            </div>
+        </div>
+    </section>
+    
+    <!-- New Arrivals -->
+    <section class="new-arrivals" id="new">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">✨ Новинки</h2>
+                <p class="section-subtitle">Свежие поступления этой недели</p>
+            </div>
+            <div class="products-slider" id="newArrivalsGrid">
+                <!-- New arrivals will be loaded dynamically -->
+            </div>
+        </div>
+    </section>
+    
+    <!-- Sale Section -->
+    <section class="sale-section" id="sale">
+        <div class="container">
+            <div class="sale-banner">
+                <div class="sale-content">
+                    <span class="sale-badge">До -40%</span>
+                    <h2>Большая распродажа</h2>
+                    <p>Успейте купить по выгодным ценам!</p>
+                    <a href="#catalog" class="btn btn-primary">Смотреть все</a>
+                </div>
+            </div>
+            <div class="products-slider" id="saleGrid">
+                <!-- Sale items will be loaded dynamically -->
+            </div>
+        </div>
+    </section>
+    
+    <!-- Categories -->
+    <section class="categories" id="categories">
+        <div class="container">
+            <h2 class="section-title">Категории</h2>
+            <div class="categories-grid" id="categoriesGrid">
+                <!-- Categories will be loaded dynamically -->
+            </div>
+        </div>
+    </section>
+    
+    <!-- Catalog -->
+    <section class="catalog" id="catalog">
+        <div class="container">
+            <div class="catalog-header">
+                <h2 class="section-title">Каталог товаров</h2>
+                <div class="catalog-filters">
+                    <select id="categoryFilter">
+                        <option value="все">Все категории</option>
+                    </select>
+                    <select id="sortFilter">
+                        <option value="newest">Новинки</option>
+                        <option value="price_asc">Цена: по возрастанию</option>
+                        <option value="price_desc">Цена: по убыванию</option>
+                        <option value="rating">По рейтингу</option>
+                        <option value="name">По названию</option>
+                    </select>
+                </div>
+            </div>
+            <div class="products-grid" id="productsGrid">
+                <!-- Products will be loaded dynamically -->
+            </div>
+        </div>
+    </section>
+    
+    <!-- About -->
+    <section class="about" id="about">
+        <div class="container">
+            <h2 class="section-title">Почему выбирают нас</h2>
+            <div class="features-grid">
+                <div class="feature">
+                    <div class="feature-icon">🚚</div>
+                    <h3>Быстрая доставка</h3>
+                    <p>Доставка по всей России за 1-5 дней</p>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">💯</div>
+                    <h3>Гарантия качества</h3>
+                    <p>Только проверенные бренды и материалы</p>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">🔄</div>
+                    <h3>Лёгкий возврат</h3>
+                    <p>Бесплатный возврат в течение 14 дней</p>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">💳</div>
+                    <h3>Удобная оплата</h3>
+                    <p>Картой, наличными или в рассрочку</p>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">🎁</div>
+                    <h3>Бонусная программа</h3>
+                    <p>Накопительные скидки для постоянных клиентов</p>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">💬</div>
+                    <h3>Поддержка 24/7</h3>
+                    <p>Мы всегда на связи и готовы помочь</p>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Newsletter -->
+    <section class="newsletter">
+        <div class="container">
+            <div class="newsletter-content">
+                <h2>Подпишитесь на рассылку</h2>
+                <p>Получайте информацию о новинках и специальных предложениях</p>
+                <form class="newsletter-form" onsubmit="subscribeNewsletter(event)">
+                    <input type="email" placeholder="Ваш email" required>
+                    <button type="submit" class="btn btn-primary">Подписаться</button>
+                </form>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-col">
+                    <h4>👗 FASHION STORE</h4>
+                    <p>Интернет-магазин стильной одежды для всей семьи. Качество и стиль по доступным ценам.</p>
+                    <div class="social-links">
+                        <a href="#" class="social-link">📱</a>
+                        <a href="#" class="social-link">💬</a>
+                        <a href="#" class="social-link">📸</a>
+                    </div>
+                </div>
+                <div class="footer-col">
+                    <h4>Контакты</h4>
+                    <p>📞 8 (800) 123-45-67</p>
+                    <p>✉️ info@fashionstore.ru</p>
+                    <p>🕐 Пн-Вс: 9:00-21:00</p>
+                </div>
+                <div class="footer-col">
+                    <h4>Покупателям</h4>
+                    <a href="#">Доставка и оплата</a>
+                    <a href="#">Возврат товара</a>
+                    <a href="#">Размерная сетка</a>
+                    <a href="#">Бонусная программа</a>
+                </div>
+                <div class="footer-col">
+                    <h4>Промокоды</h4>
+                    <p class="promo-hint">WELCOME10 - скидка 10%</p>
+                    <p class="promo-hint">SALE500 - скидка 500₽</p>
+                    <p class="promo-hint">VIP20 - скидка 20%</p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 FASHION STORE. Все права защищены.</p>
+            </div>
+        </div>
+    </footer>
+    
+    <!-- Product Modal -->
+    <div class="modal" id="productModal">
+        <div class="modal-content modal-large">
+            <button class="modal-close" onclick="closeModal('productModal')">&times;</button>
+            <div class="product-detail" id="productDetail">
+                <!-- Product details will be loaded dynamically -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- Cart Modal -->
+    <div class="modal" id="cartModal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeModal('cartModal')">&times;</button>
+            <h2>🛒 Корзина</h2>
+            <div class="cart-items" id="cartItems">
+                <!-- Cart items will be loaded dynamically -->
+            </div>
+            
+            <!-- Promocode -->
+            <div class="promocode-section">
+                <div class="promocode-input">
+                    <input type="text" id="promocodeInput" placeholder="Введите промокод">
+                    <button class="btn btn-secondary" onclick="applyPromocode()">Применить</button>
+                </div>
+                <div id="promocodeResult"></div>
+            </div>
+            
+            <div class="cart-total" id="cartTotal">
+                <div class="cart-subtotal">
+                    <span>Подытог:</span>
+                    <span id="subtotalAmount">0 ₽</span>
+                </div>
+                <div class="cart-discount" id="discountRow" style="display: none;">
+                    <span>Скидка:</span>
+                    <span id="discountAmount">-0 ₽</span>
+                </div>
+                <div class="cart-final">
+                    <strong>Итого:</strong>
+                    <strong><span id="totalAmount">0</span> ₽</strong>
+                </div>
+            </div>
+            <button class="btn btn-primary btn-block" id="checkoutBtn" onclick="showCheckout()">
+                Оформить заказ
+            </button>
+        </div>
+    </div>
+    
+    <!-- Wishlist Modal -->
+    <div class="modal" id="wishlistModal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeModal('wishlistModal')">&times;</button>
+            <h2>❤️ Избранное</h2>
+            <div class="wishlist-items" id="wishlistItems">
+                <!-- Wishlist items will be loaded dynamically -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- Checkout Modal -->
+    <div class="modal" id="checkoutModal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeModal('checkoutModal')">&times;</button>
+            <h2>📦 Оформление заказа</h2>
+            <form id="checkoutForm" class="checkout-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Имя *</label>
+                        <input type="text" name="customerName" required placeholder="Иван">
+                    </div>
+                    <div class="form-group">
+                        <label>Фамилия *</label>
+                        <input type="text" name="customerLastName" required placeholder="Иванов">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Email *</label>
+                    <input type="email" name="customerEmail" required placeholder="email@example.com">
+                </div>
+                <div class="form-group">
+                    <label>Телефон *</label>
+                    <input type="tel" name="customerPhone" required placeholder="+7 (999) 123-45-67">
+                </div>
+                <div class="form-group">
+                    <label>Адрес доставки *</label>
+                    <textarea name="deliveryAddress" required placeholder="Город, улица, дом, квартира, индекс"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Комментарий к заказу</label>
+                    <textarea name="comment" placeholder="Пожелания по доставке"></textarea>
+                </div>
+                <div class="checkout-summary">
+                    <p>Товаров: <span id="checkoutItemsCount">0</span></p>
+                    <p id="checkoutDiscountLine" style="display: none;">Скидка: <span id="checkoutDiscount">0</span> ₽</p>
+                    <p class="checkout-total"><strong>К оплате: <span id="checkoutTotal">0</span> ₽</strong></p>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block btn-large">✓ Подтвердить заказ</button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Auth Modal -->
+    <div class="modal" id="authModal">
+        <div class="modal-content modal-small">
+            <button class="modal-close" onclick="closeModal('authModal')">&times;</button>
+            <div class="auth-tabs">
+                <button class="auth-tab active" onclick="switchAuthTab('login')">Вход</button>
+                <button class="auth-tab" onclick="switchAuthTab('register')">Регистрация</button>
+            </div>
+            
+            <form id="loginForm" class="auth-form">
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" name="email" required>
+                </div>
+                <div class="form-group">
+                    <label>Пароль</label>
+                    <input type="password" name="password" required>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block">Войти</button>
+            </form>
+            
+            <form id="registerForm" class="auth-form" style="display: none;">
+                <div class="form-group">
+                    <label>Имя</label>
+                    <input type="text" name="name" required>
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" name="email" required>
+                </div>
+                <div class="form-group">
+                    <label>Телефон</label>
+                    <input type="tel" name="phone">
+                </div>
+                <div class="form-group">
+                    <label>Пароль</label>
+                    <input type="password" name="password" required minlength="6">
+                </div>
+                <button type="submit" class="btn btn-primary btn-block">Зарегистрироваться</button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Order Success Modal -->
+    <div class="modal" id="successModal">
+        <div class="modal-content modal-small">
+            <div class="success-content">
+                <div class="success-icon">🎉</div>
+                <h2>Заказ оформлен!</h2>
+                <p>Номер заказа: <strong id="orderNumber"></strong></p>
+                <p>Мы свяжемся с вами для подтверждения в ближайшее время</p>
+                <button class="btn btn-primary btn-large" onclick="closeModal('successModal')">Продолжить покупки</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Quick View Modal -->
+    <div class="modal" id="quickViewModal">
+        <div class="modal-content modal-large">
+            <button class="modal-close" onclick="closeModal('quickViewModal')">&times;</button>
+            <div class="quick-view-content" id="quickViewContent">
+                <!-- Quick view will be loaded dynamically -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- Profile Modal -->
+    <div class="modal" id="profileModal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeModal('profileModal')">&times;</button>
+            <div class="profile-header">
+                <div class="profile-avatar" id="profileAvatar">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                        <circle cx="12" cy="7" r="4"/>
+                    </svg>
+                </div>
+                <h2 id="profileName">Мой профиль</h2>
+                <p class="profile-email" id="profileEmail">user@example.com</p>
+            </div>
+            
+            <div class="profile-tabs">
+                <button class="profile-tab active" onclick="switchProfileTab('orders', event)">📦 Заказы</button>
+                <button class="profile-tab" onclick="switchProfileTab('wishlist', event)">❤️ Избранное</button>
+                <button class="profile-tab" onclick="switchProfileTab('settings', event)">⚙️ Настройки</button>
+            </div>
+            
+            <div class="profile-content">
+                <div class="profile-section active" id="profileOrders">
+                    <h3>История заказов</h3>
+                    <div class="orders-list" id="ordersList">
+                        <div class="orders-empty">
+                            <div class="empty-icon">📦</div>
+                            <p>У вас пока нет заказов</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="profile-section" id="profileWishlist">
+                    <h3>Избранные товары</h3>
+                    <div class="profile-wishlist-grid" id="profileWishlistGrid">
+                        <!-- Wishlist items -->
+                    </div>
+                </div>
+                
+                <div class="profile-section" id="profileSettings">
+                    <h3>Настройки профиля</h3>
+                    <form id="profileSettingsForm" class="settings-form">
+                        <div class="form-group">
+                            <label>Имя</label>
+                            <input type="text" name="name" id="settingsName" placeholder="Ваше имя">
+                        </div>
+                        <div class="form-group">
+                            <label>Email</label>
+                            <input type="email" name="email" id="settingsEmail" placeholder="email@example.com" disabled>
+                        </div>
+                        <div class="form-group">
+                            <label>Телефон</label>
+                            <input type="tel" name="phone" id="settingsPhone" placeholder="+7 (999) 123-45-67">
+                        </div>
+                        <div class="form-group">
+                            <label>Адрес доставки по умолчанию</label>
+                            <textarea name="address" id="settingsAddress" placeholder="Город, улица, дом"></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-block">Сохранить изменения</button>
+                    </form>
+                    <button class="btn btn-secondary btn-block" style="margin-top: 15px;" onclick="logout()">Выйти из аккаунта</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Toast Notification -->
+    <div class="toast" id="toast"></div>
+    
+    <!-- Back to Top Button -->
+    <button class="back-to-top" id="backToTop" onclick="scrollToTop()">↑</button>
+    
+    <script src="/js/app.js"></script>
+</body>
+</html>
