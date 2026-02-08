@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CODEX1 - City of Text (Hackers 1995)</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            overflow: hidden;
+            background: #000;
+            font-family: 'Courier New', monospace;
+        }
+        
+        #container {
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        #info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: #0f0;
+            font-size: 14px;
+            text-shadow: 0 0 10px #0f0;
+            z-index: 100;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border: 1px solid #0f0;
+            border-radius: 5px;
+        }
+        
+        #info h2 {
+            margin-bottom: 10px;
+            color: #0ff;
+            text-shadow: 0 0 15px #0ff;
+        }
+        
+        #crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 20px;
+            height: 20px;
+            border: 2px solid #0f0;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 100;
+            box-shadow: 0 0 10px #0f0;
+        }
+        
+        #crosshair::before,
+        #crosshair::after {
+            content: '';
+            position: absolute;
+            background: #0f0;
+            box-shadow: 0 0 5px #0f0;
+        }
+        
+        #crosshair::before {
+            width: 10px;
+            height: 2px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        
+        #crosshair::after {
+            width: 2px;
+            height: 10px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        
+        #start-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+            color: #0f0;
+            text-align: center;
+        }
+        
+        #start-screen h1 {
+            font-size: 4rem;
+            color: #0ff;
+            text-shadow: 0 0 30px #0ff, 0 0 60px #0ff;
+            margin-bottom: 20px;
+            animation: pulse 2s infinite;
+        }
+        
+        #start-screen p {
+            font-size: 1.2rem;
+            margin-bottom: 30px;
+            text-shadow: 0 0 10px #0f0;
+        }
+        
+        #start-screen button {
+            padding: 15px 40px;
+            font-size: 1.5rem;
+            background: transparent;
+            border: 2px solid #0f0;
+            color: #0f0;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            text-shadow: 0 0 10px #0f0;
+            box-shadow: 0 0 20px #0f0;
+            transition: all 0.3s;
+        }
+        
+        #start-screen button:hover {
+            background: #0f0;
+            color: #000;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        .scanline {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                transparent 50%,
+                rgba(0, 255, 0, 0.03) 50%
+            );
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 150;
+        }
+    </style>
+</head>
+<body>
+    <div id="container"></div>
+    <div id="crosshair"></div>
+    <div class="scanline"></div>
+    
+    <div id="info">
+        <h2>🖥️ CITY OF TEXT</h2>
+        <div>WASD - движение</div>
+        <div>Мышь - обзор</div>
+        <div>ESC - выход из режима</div>
+    </div>
+    
+    <div id="start-screen">
+        <h1>CITY OF TEXT</h1>
+        <p>Добро пожаловать в киберпространство<br>в стиле фильма "Хакеры" (1995)</p>
+        <p>Используйте WASD для перемещения и мышь для обзора</p>
+        <button id="start-btn">ВОЙТИ В СИСТЕМУ</button>
+    </div>
+
+    <script>
+        // City of Text - Hackers (1995) Style Raycasting 3D Maze
+        // Pure JavaScript implementation without external dependencies
+        
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        document.getElementById('container').appendChild(canvas);
+        
+        // Settings
+        const MAZE_SIZE = 15;
+        const CELL_SIZE = 64;
+        const FOV = Math.PI / 3;
+        
+        let width, height;
+        let player = { x: 1.5 * CELL_SIZE, y: 1.5 * CELL_SIZE, angle: 0 };
+        let keys = { w: false, s: false, a: false, d: false };
+        let isLocked = false;
+        
+        // Generate maze using recursive backtracking
+        const maze = generateMaze(MAZE_SIZE, MAZE_SIZE);
+        
+        // Pre-generate text patterns for walls
+        const wallPatterns = [];
+        const colors = ['#00ff00', '#00ffff', '#ff00ff', '#ffff00', '#ff6600'];
+        
+        function generateMaze(width, height) {
+            const grid = Array(height).fill().map(() => Array(width).fill(1));
+            
+            function carve(x, y) {
+                grid[y][x] = 0;
+                const directions = [[0, -2], [2, 0], [0, 2], [-2, 0]].sort(() => Math.random() - 0.5);
+                
+                for (const [dx, dy] of directions) {
+                    const nx = x + dx, ny = y + dy;
+                    if (nx >= 0 && nx < width && ny >= 0 && ny < height && grid[ny][nx] === 1) {
+                        grid[y + dy/2][x + dx/2] = 0;
+                        carve(nx, ny);
+                    }
+                }
+            }
+            
+            carve(1, 1);
+            return grid;
+        }
+        
+        function createWallPattern(color) {
+            const patternCanvas = document.createElement('canvas');
+            patternCanvas.width = 64;
+            patternCanvas.height = 256;
+            const pCtx = patternCanvas.getContext('2d');
+            
+            pCtx.fillStyle = '#000011';
+            pCtx.fillRect(0, 0, 64, 256);
+            
+            pCtx.font = '10px Courier New';
+            pCtx.fillStyle = color;
+            pCtx.shadowColor = color;
+            pCtx.shadowBlur = 3;
+            
+            const chars = '01アイウエオカキクケコ{}[]<>/*-+$#@!?HACK';
+            
+            for (let y = 0; y < 256; y += 12) {
+                let line = '';
+                for (let i = 0; i < 8; i++) {
+                    line += chars[Math.floor(Math.random() * chars.length)];
+                }
+                pCtx.fillText(line, 2, y + 10);
+            }
+            
+            return patternCanvas;
+        }
+        
+        // Initialize wall patterns
+        for (let i = 0; i < 50; i++) {
+            wallPatterns.push(createWallPattern(colors[i % colors.length]));
+        }
+        
+        // Particles - will be initialized after resize
+        const particles = [];
+        const particleChars = '01アイウエオカキク{}[]<>$#@';
+        
+        function initParticles() {
+            particles.length = 0;
+            for (let i = 0; i < 200; i++) {
+                particles.push({
+                    x: Math.random() * width,
+                    y: Math.random() * height,
+                    speed: 0.5 + Math.random() * 2,
+                    char: particleChars[Math.floor(Math.random() * particleChars.length)]
+                });
+            }
+        }
+        
+        function resize() {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
+            if (particles.length === 0) {
+                initParticles();
+            }
+        }
+        
+        function castRay(angle) {
+            const sin = Math.sin(angle);
+            const cos = Math.cos(angle);
+            
+            let x = player.x;
+            let y = player.y;
+            
+            for (let d = 0; d < MAZE_SIZE * CELL_SIZE; d += 2) {
+                x = player.x + cos * d;
+                y = player.y + sin * d;
+                
+                const mapX = Math.floor(x / CELL_SIZE);
+                const mapY = Math.floor(y / CELL_SIZE);
+                
+                if (mapX < 0 || mapX >= MAZE_SIZE || mapY < 0 || mapY >= MAZE_SIZE) {
+                    return { distance: d, wallId: 0 };
+                }
+                
+                if (maze[mapY][mapX] === 1) {
+                    return { distance: d, wallId: (mapX + mapY * MAZE_SIZE) % wallPatterns.length };
+                }
+            }
+            
+            return { distance: MAZE_SIZE * CELL_SIZE, wallId: 0 };
+        }
+        
+        function render() {
+            // Clear with dark blue
+            ctx.fillStyle = '#000011';
+            ctx.fillRect(0, 0, width, height);
+            
+            // Draw ceiling gradient
+            const ceilingGrad = ctx.createLinearGradient(0, 0, 0, height / 2);
+            ceilingGrad.addColorStop(0, '#000022');
+            ceilingGrad.addColorStop(1, '#001133');
+            ctx.fillStyle = ceilingGrad;
+            ctx.fillRect(0, 0, width, height / 2);
+            
+            // Draw floor gradient
+            const floorGrad = ctx.createLinearGradient(0, height / 2, 0, height);
+            floorGrad.addColorStop(0, '#001100');
+            floorGrad.addColorStop(1, '#002200');
+            ctx.fillStyle = floorGrad;
+            ctx.fillRect(0, height / 2, width, height / 2);
+            
+            // Draw grid lines on floor
+            ctx.strokeStyle = 'rgba(0, 255, 0, 0.1)';
+            ctx.lineWidth = 1;
+            for (let i = height / 2; i < height; i += 20) {
+                ctx.beginPath();
+                ctx.moveTo(0, i);
+                ctx.lineTo(width, i);
+                ctx.stroke();
+            }
+            
+            // Raycasting
+            const numRays = Math.floor(width / 2);
+            const angleStep = FOV / numRays;
+            const startAngle = player.angle - FOV / 2;
+            
+            for (let i = 0; i < numRays; i++) {
+                const rayAngle = startAngle + i * angleStep;
+                const { distance, wallId } = castRay(rayAngle);
+                
+                // Fish-eye correction
+                const correctedDist = distance * Math.cos(rayAngle - player.angle);
+                
+                // Calculate wall height
+                const wallHeight = Math.min((CELL_SIZE * height) / correctedDist, height * 2);
+                const wallTop = (height - wallHeight) / 2;
+                
+                // Draw wall slice with texture
+                const pattern = wallPatterns[wallId];
+                const textureX = Math.floor((i / numRays) * pattern.width) % pattern.width;
+                
+                // Darken based on distance
+                const brightness = Math.max(0.2, 1 - correctedDist / (MAZE_SIZE * CELL_SIZE * 0.5));
+                
+                ctx.save();
+                ctx.globalAlpha = brightness;
+                ctx.drawImage(
+                    pattern,
+                    textureX, 0, 1, pattern.height,
+                    i * 2, wallTop, 2, wallHeight
+                );
+                ctx.restore();
+                
+                // Add glow effect on edges
+                if (i % 30 === 0) {
+                    const color = colors[wallId % colors.length];
+                    ctx.strokeStyle = color;
+                    ctx.shadowColor = color;
+                    ctx.shadowBlur = 10;
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.moveTo(i * 2, wallTop);
+                    ctx.lineTo(i * 2, wallTop + wallHeight);
+                    ctx.stroke();
+                    ctx.shadowBlur = 0;
+                }
+            }
+            
+            // Draw falling code particles
+            ctx.font = '12px Courier New';
+            ctx.fillStyle = '#00ff00';
+            ctx.shadowColor = '#00ff00';
+            ctx.shadowBlur = 5;
+            
+            for (const p of particles) {
+                ctx.globalAlpha = 0.5;
+                ctx.fillText(p.char, p.x, p.y);
+                p.y += p.speed;
+                if (p.y > height) {
+                    p.y = 0;
+                    p.x = Math.random() * width;
+                }
+            }
+            ctx.globalAlpha = 1;
+            ctx.shadowBlur = 0;
+            
+            // Scanline effect
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+            for (let y = 0; y < height; y += 4) {
+                ctx.fillRect(0, y, width, 2);
+            }
+        }
+        
+        function update() {
+            const speed = 4;
+            
+            if (keys.w) {
+                const newX = player.x + Math.cos(player.angle) * speed;
+                const newY = player.y + Math.sin(player.angle) * speed;
+                if (!checkCollision(newX, newY)) {
+                    player.x = newX;
+                    player.y = newY;
+                }
+            }
+            if (keys.s) {
+                const newX = player.x - Math.cos(player.angle) * speed;
+                const newY = player.y - Math.sin(player.angle) * speed;
+                if (!checkCollision(newX, newY)) {
+                    player.x = newX;
+                    player.y = newY;
+                }
+            }
+            if (keys.a) {
+                const newX = player.x + Math.cos(player.angle - Math.PI/2) * speed;
+                const newY = player.y + Math.sin(player.angle - Math.PI/2) * speed;
+                if (!checkCollision(newX, newY)) {
+                    player.x = newX;
+                    player.y = newY;
+                }
+            }
+            if (keys.d) {
+                const newX = player.x + Math.cos(player.angle + Math.PI/2) * speed;
+                const newY = player.y + Math.sin(player.angle + Math.PI/2) * speed;
+                if (!checkCollision(newX, newY)) {
+                    player.x = newX;
+                    player.y = newY;
+                }
+            }
+        }
+        
+        function checkCollision(x, y) {
+            const margin = 10;
+            // Check collision with margin for smoother movement
+            const checkPoints = [
+                { x: x - margin, y: y - margin },
+                { x: x + margin, y: y - margin },
+                { x: x - margin, y: y + margin },
+                { x: x + margin, y: y + margin }
+            ];
+            
+            for (const point of checkPoints) {
+                const mapX = Math.floor(point.x / CELL_SIZE);
+                const mapY = Math.floor(point.y / CELL_SIZE);
+                
+                if (mapX < 0 || mapX >= MAZE_SIZE || mapY < 0 || mapY >= MAZE_SIZE) {
+                    return true;
+                }
+                
+                if (maze[mapY][mapX] === 1) {
+                    return true;
+                }
+            }
+            
+            return false;
+        }
+        
+        function gameLoop() {
+            update();
+            render();
+            requestAnimationFrame(gameLoop);
+        }
+        
+        // Event listeners
+        document.addEventListener('keydown', (e) => {
+            switch(e.code) {
+                case 'KeyW': case 'ArrowUp': keys.w = true; break;
+                case 'KeyS': case 'ArrowDown': keys.s = true; break;
+                case 'KeyA': case 'ArrowLeft': keys.a = true; break;
+                case 'KeyD': case 'ArrowRight': keys.d = true; break;
+            }
+        });
+        
+        document.addEventListener('keyup', (e) => {
+            switch(e.code) {
+                case 'KeyW': case 'ArrowUp': keys.w = false; break;
+                case 'KeyS': case 'ArrowDown': keys.s = false; break;
+                case 'KeyA': case 'ArrowLeft': keys.a = false; break;
+                case 'KeyD': case 'ArrowRight': keys.d = false; break;
+            }
+        });
+        
+        document.addEventListener('mousemove', (e) => {
+            if (isLocked) {
+                player.angle += e.movementX * 0.003;
+            }
+        });
+        
+        document.getElementById('start-btn').addEventListener('click', () => {
+            document.getElementById('start-screen').style.display = 'none';
+            canvas.requestPointerLock();
+        });
+        
+        document.addEventListener('pointerlockchange', () => {
+            isLocked = document.pointerLockElement === canvas;
+        });
+        
+        canvas.addEventListener('click', () => {
+            if (!isLocked && document.getElementById('start-screen').style.display === 'none') {
+                canvas.requestPointerLock();
+            }
+        });
+        
+        window.addEventListener('resize', resize);
+        
+        // Initialize
+        resize();
+        gameLoop();
+    </script>
+</body>
+</html>
