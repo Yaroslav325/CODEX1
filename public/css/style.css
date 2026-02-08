@@ -1,15 +1,16 @@
 /* ============================================
-   FASHION STORE - Main Stylesheet
+   FASHION STORE - Glassmorphism Stylesheet
    ============================================ */
 
 :root {
-    --primary: #2563eb;
-    --primary-dark: #1d4ed8;
+    --primary: #6366f1;
+    --primary-dark: #4f46e5;
+    --primary-light: #818cf8;
     --secondary: #64748b;
-    --success: #22c55e;
+    --success: #10b981;
     --danger: #ef4444;
     --warning: #f59e0b;
-    --dark: #1e293b;
+    --dark: #0f172a;
     --light: #f8fafc;
     --white: #ffffff;
     --gray-100: #f1f5f9;
@@ -20,11 +21,21 @@
     --gray-600: #475569;
     --gray-700: #334155;
     --gray-800: #1e293b;
+    
+    /* Glassmorphism */
+    --glass-bg: rgba(255, 255, 255, 0.25);
+    --glass-bg-strong: rgba(255, 255, 255, 0.45);
+    --glass-border: rgba(255, 255, 255, 0.3);
+    --glass-shadow: 0 8px 32px rgba(31, 38, 135, 0.15);
+    --glass-blur: blur(20px);
+    
     --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-    --radius: 12px;
-    --radius-sm: 8px;
-    --transition: all 0.3s ease;
+    --shadow-lg: 0 10px 40px -3px rgba(99, 102, 241, 0.2);
+    --shadow-glow: 0 0 40px rgba(99, 102, 241, 0.3);
+    --radius: 20px;
+    --radius-sm: 12px;
+    --radius-lg: 30px;
+    --transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 * {
@@ -35,9 +46,27 @@
 
 body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    background: var(--light);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+    background-attachment: fixed;
+    min-height: 100vh;
     color: var(--dark);
     line-height: 1.6;
+}
+
+/* Animated background shapes */
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: 
+        radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 40% 40%, rgba(99, 102, 241, 0.2) 0%, transparent 40%);
+    pointer-events: none;
+    z-index: -1;
 }
 
 .container {
@@ -47,12 +76,14 @@ body {
 }
 
 /* ============================================
-   HEADER
+   HEADER - Glassmorphism
    ============================================ */
 
 .header {
-    background: var(--white);
-    box-shadow: var(--shadow);
+    background: var(--glass-bg-strong);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border-bottom: 1px solid var(--glass-border);
     position: sticky;
     top: 0;
     z-index: 100;
@@ -182,12 +213,12 @@ body {
 }
 
 /* ============================================
-   BUTTONS
+   BUTTONS - Glassmorphism
    ============================================ */
 
 .btn {
     display: inline-block;
-    padding: 12px 30px;
+    padding: 14px 32px;
     border-radius: var(--radius);
     font-weight: 600;
     font-size: 1rem;
@@ -195,35 +226,55 @@ body {
     cursor: pointer;
     border: none;
     transition: var(--transition);
+    position: relative;
+    overflow: hidden;
 }
 
 .btn-primary {
-    background: var(--primary);
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
     color: var(--white);
+    box-shadow: 0 4px 20px rgba(99, 102, 241, 0.4);
 }
 
 .btn-primary:hover {
-    background: var(--primary-dark);
-    transform: translateY(-2px);
+    background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 30px rgba(99, 102, 241, 0.5);
 }
 
 .btn-secondary {
-    background: var(--gray-200);
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border);
     color: var(--dark);
 }
 
 .btn-secondary:hover {
-    background: var(--gray-300);
+    background: var(--glass-bg-strong);
+    transform: translateY(-2px);
+}
+
+.btn-outline {
+    background: transparent;
+    border: 2px solid rgba(255, 255, 255, 0.7);
+    color: white;
+}
+
+.btn-outline:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
 }
 
 .btn-large {
     padding: 18px 50px;
     font-size: 1.1rem;
+    border-radius: var(--radius-lg);
 }
 
 .btn-small {
     padding: 8px 16px;
     font-size: 0.85rem;
+    border-radius: var(--radius-sm);
 }
 
 .btn-block {
@@ -233,7 +284,7 @@ body {
 }
 
 /* ============================================
-   SECTIONS
+   SECTIONS - Glassmorphism
    ============================================ */
 
 section {
@@ -245,6 +296,8 @@ section {
     font-weight: 700;
     margin-bottom: 40px;
     text-align: center;
+    color: var(--white);
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
 }
 
 /* ============================================
@@ -257,36 +310,78 @@ section {
 
 .categories-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
     gap: 20px;
 }
 
 .category-card {
-    background: linear-gradient(135deg, #f6f8fb 0%, #e9ecef 100%);
-    padding: 30px 20px;
+    background: var(--glass-bg-strong);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border);
+    padding: 30px 15px;
     border-radius: var(--radius);
     text-align: center;
     cursor: pointer;
     transition: var(--transition);
     text-decoration: none;
     color: var(--dark);
+    position: relative;
+    overflow: hidden;
+}
+
+.category-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+    transition: 0.5s;
+}
+
+.category-card:hover::before {
+    left: 100%;
 }
 
 .category-card:hover {
-    transform: translateY(-5px);
-    box-shadow: var(--shadow-lg);
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: var(--shadow-lg), var(--shadow-glow);
+    background: var(--glass-bg-strong);
+}
+
+.category-card .category-icon {
+    width: 56px;
+    height: 56px;
+    margin: 0 auto 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+    border-radius: 16px;
+    box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
+}
+
+.category-card .category-icon svg {
+    width: 28px;
+    height: 28px;
+    fill: white;
+    stroke: white;
+    stroke-width: 1.5;
 }
 
 .category-card .icon {
-    font-size: 3rem;
+    font-size: 2.5rem;
     margin-bottom: 15px;
     display: block;
 }
 
 .category-card h3 {
-    font-size: 1.1rem;
+    font-size: 0.95rem;
     font-weight: 600;
     text-transform: capitalize;
+    color: var(--dark);
 }
 
 /* ============================================
@@ -336,34 +431,39 @@ section {
    ============================================ */
 
 .product-card {
-    background: var(--white);
+    background: var(--glass-bg-strong);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border);
     border-radius: var(--radius);
     overflow: hidden;
-    box-shadow: var(--shadow);
+    box-shadow: var(--glass-shadow);
     transition: var(--transition);
     cursor: pointer;
+    position: relative;
 }
 
 .product-card:hover {
-    transform: translateY(-5px);
-    box-shadow: var(--shadow-lg);
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: var(--shadow-lg), var(--shadow-glow);
 }
 
 .product-image {
     width: 100%;
     height: 300px;
     object-fit: cover;
-    background: var(--gray-200);
+    background: linear-gradient(135deg, #f0f0f0 0%, #e0e0e0 100%);
 }
 
 .product-info {
     padding: 20px;
+    background: rgba(255, 255, 255, 0.6);
 }
 
 .product-category {
     color: var(--primary);
     font-size: 0.85rem;
-    font-weight: 500;
+    font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 1px;
     margin-bottom: 8px;
@@ -471,7 +571,7 @@ section {
 }
 
 /* ============================================
-   MODALS
+   MODALS - Glassmorphism
    ============================================ */
 
 .modal {
@@ -481,7 +581,9 @@ section {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.6);
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     z-index: 1000;
     align-items: center;
     justify-content: center;
@@ -494,14 +596,18 @@ section {
 }
 
 .modal-content {
-    background: var(--white);
-    border-radius: var(--radius);
-    padding: 30px;
+    background: var(--glass-bg-strong);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-lg);
+    padding: 35px;
     max-width: 600px;
     width: 100%;
     max-height: 90vh;
     overflow-y: auto;
     position: relative;
+    box-shadow: var(--glass-shadow), var(--shadow-glow);
 }
 
 .modal-large {
@@ -516,16 +622,24 @@ section {
     position: absolute;
     top: 15px;
     right: 20px;
-    font-size: 2rem;
-    background: none;
-    border: none;
+    font-size: 1.8rem;
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.3);
+    border: 1px solid var(--glass-border);
+    border-radius: 50%;
     cursor: pointer;
-    color: var(--gray-500);
-    line-height: 1;
+    color: var(--dark);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
 }
 
 .modal-close:hover {
-    color: var(--dark);
+    background: rgba(239, 68, 68, 0.2);
+    color: var(--danger);
+    transform: rotate(90deg);
 }
 
 /* ============================================
@@ -1477,6 +1591,244 @@ section {
 .product-card:nth-child(4) { animation-delay: 0.25s; }
 
 /* ============================================
+   PROFILE MODAL - Glassmorphism
+   ============================================ */
+
+.profile-header {
+    text-align: center;
+    padding-bottom: 25px;
+    margin-bottom: 25px;
+    border-bottom: 1px solid var(--glass-border);
+}
+
+.profile-avatar {
+    width: 100px;
+    height: 100px;
+    margin: 0 auto 15px;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 30px rgba(99, 102, 241, 0.4);
+}
+
+.profile-avatar svg {
+    width: 50px;
+    height: 50px;
+    stroke: white;
+}
+
+.profile-header h2 {
+    font-size: 1.5rem;
+    margin-bottom: 5px;
+    color: var(--dark);
+}
+
+.profile-email {
+    color: var(--gray-500);
+    font-size: 0.9rem;
+}
+
+.profile-tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 25px;
+    flex-wrap: wrap;
+}
+
+.profile-tab {
+    flex: 1;
+    min-width: 100px;
+    padding: 12px 15px;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: var(--transition);
+    color: var(--dark);
+}
+
+.profile-tab:hover {
+    background: var(--glass-bg-strong);
+}
+
+.profile-tab.active {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+    color: white;
+    border-color: transparent;
+    box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+}
+
+.profile-section {
+    display: none;
+}
+
+.profile-section.active {
+    display: block;
+    animation: fadeIn 0.3s ease;
+}
+
+.profile-section h3 {
+    font-size: 1.2rem;
+    margin-bottom: 20px;
+    color: var(--dark);
+}
+
+.orders-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.orders-empty, .wishlist-empty {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--gray-500);
+}
+
+.empty-icon {
+    font-size: 3rem;
+    margin-bottom: 15px;
+    opacity: 0.5;
+}
+
+.order-card {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-sm);
+    padding: 20px;
+    margin-bottom: 15px;
+}
+
+.order-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid var(--glass-border);
+}
+
+.order-number {
+    font-weight: 600;
+    color: var(--primary);
+}
+
+.order-status {
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.order-status.pending {
+    background: rgba(245, 158, 11, 0.2);
+    color: #b45309;
+}
+
+.order-status.completed {
+    background: rgba(16, 185, 129, 0.2);
+    color: #059669;
+}
+
+.order-status.cancelled {
+    background: rgba(239, 68, 68, 0.2);
+    color: #dc2626;
+}
+
+.order-items {
+    font-size: 0.9rem;
+    color: var(--gray-600);
+    margin-bottom: 10px;
+}
+
+.order-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.85rem;
+}
+
+.order-date {
+    color: var(--gray-500);
+}
+
+.order-total {
+    font-weight: 700;
+    color: var(--primary);
+    font-size: 1.1rem;
+}
+
+.profile-wishlist-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 15px;
+}
+
+.profile-wishlist-item {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.profile-wishlist-item:hover {
+    transform: scale(1.05);
+    box-shadow: var(--shadow-lg);
+}
+
+.profile-wishlist-item img {
+    width: 100%;
+    height: 100px;
+    object-fit: cover;
+}
+
+.profile-wishlist-item .item-info {
+    padding: 10px;
+}
+
+.profile-wishlist-item .item-name {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--dark);
+    margin-bottom: 5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.profile-wishlist-item .item-price {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--primary);
+}
+
+.settings-form {
+    max-width: 400px;
+}
+
+.settings-form .form-group {
+    margin-bottom: 20px;
+}
+
+.settings-form input,
+.settings-form textarea {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-sm);
+}
+
+.settings-form input:focus,
+.settings-form textarea:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+}
+
+/* ============================================
    RESPONSIVE ADDITIONS
    ============================================ */
 
@@ -1500,5 +1852,13 @@ section {
     
     .promo-banner {
         font-size: 0.8rem;
+    }
+    
+    .profile-tabs {
+        flex-direction: column;
+    }
+    
+    .profile-tab {
+        text-align: center;
     }
 }

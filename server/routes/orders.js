@@ -36,6 +36,7 @@ router.post('/', (req, res) => {
         // Create order
         db.orders.push({
             id: orderId,
+            session_id: sessionId,
             customer_name: customerName,
             customer_email: customerEmail,
             customer_phone: customerPhone || '',
@@ -60,6 +61,22 @@ router.post('/', (req, res) => {
     } catch (error) {
         console.error('Error creating order:', error);
         res.status(500).json({ error: 'Ошибка при создании заказа' });
+    }
+});
+
+// Get user orders by session ID
+router.get('/user/:sessionId', (req, res) => {
+    try {
+        const db = getDb();
+        const orders = db.orders.filter(o => o.session_id === req.params.sessionId);
+        
+        // Sort by date descending (newest first)
+        orders.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+        
+        res.json(orders);
+    } catch (error) {
+        console.error('Error fetching user orders:', error);
+        res.status(500).json({ error: 'Ошибка при получении заказов' });
     }
 });
 

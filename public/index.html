@@ -415,6 +415,72 @@
         </div>
     </div>
     
+    <!-- Profile Modal -->
+    <div class="modal" id="profileModal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeModal('profileModal')">&times;</button>
+            <div class="profile-header">
+                <div class="profile-avatar" id="profileAvatar">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                        <circle cx="12" cy="7" r="4"/>
+                    </svg>
+                </div>
+                <h2 id="profileName">Мой профиль</h2>
+                <p class="profile-email" id="profileEmail">user@example.com</p>
+            </div>
+            
+            <div class="profile-tabs">
+                <button class="profile-tab active" onclick="switchProfileTab('orders', event)">📦 Заказы</button>
+                <button class="profile-tab" onclick="switchProfileTab('wishlist', event)">❤️ Избранное</button>
+                <button class="profile-tab" onclick="switchProfileTab('settings', event)">⚙️ Настройки</button>
+            </div>
+            
+            <div class="profile-content">
+                <div class="profile-section active" id="profileOrders">
+                    <h3>История заказов</h3>
+                    <div class="orders-list" id="ordersList">
+                        <div class="orders-empty">
+                            <div class="empty-icon">📦</div>
+                            <p>У вас пока нет заказов</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="profile-section" id="profileWishlist">
+                    <h3>Избранные товары</h3>
+                    <div class="profile-wishlist-grid" id="profileWishlistGrid">
+                        <!-- Wishlist items -->
+                    </div>
+                </div>
+                
+                <div class="profile-section" id="profileSettings">
+                    <h3>Настройки профиля</h3>
+                    <form id="profileSettingsForm" class="settings-form">
+                        <div class="form-group">
+                            <label>Имя</label>
+                            <input type="text" name="name" id="settingsName" placeholder="Ваше имя">
+                        </div>
+                        <div class="form-group">
+                            <label>Email</label>
+                            <input type="email" name="email" id="settingsEmail" placeholder="email@example.com" disabled>
+                        </div>
+                        <div class="form-group">
+                            <label>Телефон</label>
+                            <input type="tel" name="phone" id="settingsPhone" placeholder="+7 (999) 123-45-67">
+                        </div>
+                        <div class="form-group">
+                            <label>Адрес доставки по умолчанию</label>
+                            <textarea name="address" id="settingsAddress" placeholder="Город, улица, дом"></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-block">Сохранить изменения</button>
+                    </form>
+                    <button class="btn btn-secondary btn-block" style="margin-top: 15px;" onclick="logout()">Выйти из аккаунта</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <!-- Toast Notification -->
     <div class="toast" id="toast"></div>
     

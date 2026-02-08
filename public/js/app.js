@@ -63,8 +63,14 @@ function setupEventListeners() {
         });
     }
     
-    // Auth
-    document.getElementById('authBtn').addEventListener('click', () => openModal('authModal'));
+    // Auth - open profile if logged in, otherwise auth modal
+    document.getElementById('authBtn').addEventListener('click', () => {
+        if (currentUser) {
+            openProfile();
+        } else {
+            openModal('authModal');
+        }
+    });
     document.getElementById('loginForm').addEventListener('submit', handleLogin);
     document.getElementById('registerForm').addEventListener('submit', handleRegister);
     
@@ -137,16 +143,24 @@ async function loadCategories() {
         const response = await fetch(`${API_URL}/products/meta/categories`);
         const categories = await response.json();
         
+        // SVG icons for categories (modern, minimalist design)
         const categoryIcons = {
-            'футболки': '👕', 'джинсы': '👖', 'худи': '🧥', 'платья': '👗',
-            'куртки': '🧥', 'брюки': '👖', 'рубашки': '👔', 'свитера': '🧶',
-            'обувь': '👟', 'аксессуары': '👜'
+            'футболки': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.38 3.46L16 2a4 4 0 01-8 0L3.62 3.46a2 2 0 00-1.34 2.23l.58 3.47a1 1 0 00.99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 002-2V10h2.15a1 1 0 00.99-.84l.58-3.47a2 2 0 00-1.34-2.23z"/></svg>`,
+            'джинсы': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h5l1 4v12H4V8l0-4z"/><path d="M20 4h-5l-1 4v12h6V8l0-4z"/><path d="M9 4h6v4c0 2-3 2-3 4v8"/></svg>`,
+            'худи': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C9 2 7 4 7 4L3 7v5l2 1v8h14v-8l2-1V7l-4-3s-2-2-5-2z"/><circle cx="12" cy="8" r="2"/><path d="M7 4l5 4 5-4"/></svg>`,
+            'платья': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 2h8l-2 6h2l-4 14-4-14h2l-2-6z"/><path d="M6 8c-2 0-2 4 0 4"/><path d="M18 8c2 0 2 4 0 4"/></svg>`,
+            'куртки': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 4l-4-2h-8L4 4l-2 4v12h6v-6h8v6h6V8l-2-4z"/><path d="M8 2l4 3 4-3"/><circle cx="12" cy="14" r="1"/></svg>`,
+            'брюки': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2h12v6c0 2-2 2-2 4v10h-4v-8h-0v8H8V12c0-2-2-2-2-4V2z"/><line x1="6" y1="6" x2="18" y2="6"/></svg>`,
+            'рубашки': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 2L7 6l-4 2v12h18V8l-4-2-2-4H9z"/><path d="M9 2l3 4 3-4"/><line x1="12" y1="6" x2="12" y2="20"/><circle cx="12" cy="10" r="0.5" fill="currentColor"/><circle cx="12" cy="14" r="0.5" fill="currentColor"/></svg>`,
+            'свитера': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 2h8c0 2 2 2 2 4v4l2 2v8H4v-8l2-2V6c0-2 2-2 2-4z"/><path d="M8 2c0 2 4 4 8 0"/><path d="M4 12h4v8"/><path d="M20 12h-4v8"/></svg>`,
+            'обувь': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 16v4h16v-4c0-2-4-4-4-8 0-2 1-6-4-6S8 6 8 8c0 4-4 6-4 8z"/><line x1="4" y1="16" x2="20" y2="16"/></svg>`,
+            'аксессуары': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="14" rx="2"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"/><line x1="12" y1="10" x2="12" y2="14"/><line x1="10" y1="12" x2="14" y2="12"/></svg>`
         };
         
         const grid = document.getElementById('categoriesGrid');
         grid.innerHTML = categories.map(cat => `
             <div class="category-card" onclick="selectCategory('${cat}')">
-                <span class="icon">${categoryIcons[cat] || '👚'}</span>
+                <div class="category-icon">${categoryIcons[cat] || categoryIcons['аксессуары']}</div>
                 <h3>${cat}</h3>
             </div>
         `).join('');
@@ -682,8 +696,28 @@ async function handleCheckout(e) {
 // ============================================
 
 function checkAuth() {
+    // Try to restore user from localStorage
+    const savedUser = localStorage.getItem('currentUser');
+    if (savedUser) {
+        try {
+            currentUser = JSON.parse(savedUser);
+            updateAuthUI();
+        } catch (e) {
+            localStorage.removeItem('currentUser');
+        }
+    }
+    
     if (authToken) {
         fetchCurrentUser();
+    }
+}
+
+function updateAuthUI() {
+    const authBtn = document.getElementById('authBtn');
+    if (currentUser) {
+        authBtn.innerHTML = `👤 ${currentUser.name}`;
+    } else {
+        authBtn.innerHTML = '👤 Войти';
     }
 }
 
@@ -695,7 +729,7 @@ async function fetchCurrentUser() {
         
         if (response.ok) {
             currentUser = await response.json();
-            document.getElementById('authBtn').innerHTML = `👤 ${currentUser.name}`;
+            updateAuthUI();
         } else {
             logout();
         }
@@ -726,7 +760,8 @@ async function handleLogin(e) {
             authToken = result.token;
             localStorage.setItem('authToken', authToken);
             currentUser = result.user;
-            document.getElementById('authBtn').innerHTML = `👤 ${currentUser.name}`;
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            updateAuthUI();
             closeModal('authModal');
             showToast('Добро пожаловать!', 'success');
             e.target.reset();
@@ -762,7 +797,8 @@ async function handleRegister(e) {
             authToken = result.token;
             localStorage.setItem('authToken', authToken);
             currentUser = result.user;
-            document.getElementById('authBtn').innerHTML = `👤 ${currentUser.name}`;
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            updateAuthUI();
             closeModal('authModal');
             showToast('Регистрация успешна!', 'success');
             e.target.reset();
@@ -772,13 +808,6 @@ async function handleRegister(e) {
     } catch (error) {
         showToast('Ошибка при регистрации', 'error');
     }
-}
-
-function logout() {
-    authToken = null;
-    currentUser = null;
-    localStorage.removeItem('authToken');
-    document.getElementById('authBtn').innerHTML = '👤 Войти';
 }
 
 function switchAuthTab(tab) {
@@ -795,6 +824,161 @@ function switchAuthTab(tab) {
 }
 
 // ============================================
+// PROFILE
+// ============================================
+
+function openProfile() {
+    if (!currentUser) {
+        openModal('authModal');
+        return;
+    }
+    
+    // Update profile info
+    document.getElementById('profileName').textContent = currentUser.name || 'Мой профиль';
+    document.getElementById('profileEmail').textContent = currentUser.email || '';
+    
+    // Load user data
+    loadUserOrders();
+    loadProfileWishlist();
+    loadUserSettings();
+    
+    openModal('profileModal');
+}
+
+function switchProfileTab(tab, evt) {
+    document.querySelectorAll('.profile-tab').forEach(t => t.classList.remove('active'));
+    if (evt && evt.target) {
+        evt.target.classList.add('active');
+    }
+    
+    document.querySelectorAll('.profile-section').forEach(s => s.classList.remove('active'));
+    
+    if (tab === 'orders') {
+        document.getElementById('profileOrders').classList.add('active');
+    } else if (tab === 'wishlist') {
+        document.getElementById('profileWishlist').classList.add('active');
+        loadProfileWishlist();
+    } else if (tab === 'settings') {
+        document.getElementById('profileSettings').classList.add('active');
+    }
+}
+
+async function loadUserOrders() {
+    const container = document.getElementById('ordersList');
+    
+    try {
+        const response = await fetch(`${API_URL}/orders/user/${sessionId}`);
+        const orders = await response.json();
+        
+        if (!orders || orders.length === 0) {
+            container.innerHTML = `
+                <div class="orders-empty">
+                    <div class="empty-icon">📦</div>
+                    <p>У вас пока нет заказов</p>
+                    <a href="#catalog" class="btn btn-primary" onclick="closeModal('profileModal')">Начать покупки</a>
+                </div>
+            `;
+            return;
+        }
+        
+        container.innerHTML = orders.map(order => {
+            const statusClass = order.status === 'completed' ? 'completed' : 
+                               order.status === 'cancelled' ? 'cancelled' : 'pending';
+            const statusText = order.status === 'completed' ? 'Выполнен' :
+                              order.status === 'cancelled' ? 'Отменён' : 'В обработке';
+            const date = new Date(order.created_at).toLocaleDateString('ru-RU');
+            const itemsCount = order.items?.length || 0;
+            
+            return `
+                <div class="order-card">
+                    <div class="order-header">
+                        <span class="order-number">#${order.id.slice(0, 8).toUpperCase()}</span>
+                        <span class="order-status ${statusClass}">${statusText}</span>
+                    </div>
+                    <div class="order-items">${itemsCount} товар(ов)</div>
+                    <div class="order-footer">
+                        <span class="order-date">${date}</span>
+                        <span class="order-total">${formatPrice(order.total)} ₽</span>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    } catch (error) {
+        console.error('Error loading orders:', error);
+        container.innerHTML = `
+            <div class="orders-empty">
+                <div class="empty-icon">📦</div>
+                <p>У вас пока нет заказов</p>
+            </div>
+        `;
+    }
+}
+
+function loadProfileWishlist() {
+    const container = document.getElementById('profileWishlistGrid');
+    
+    if (!wishlist || wishlist.length === 0) {
+        container.innerHTML = `
+            <div class="orders-empty" style="grid-column: 1/-1;">
+                <div class="empty-icon">❤️</div>
+                <p>Избранное пусто</p>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = wishlist.map(item => `
+        <div class="profile-wishlist-item" onclick="openProduct('${item.id}'); closeModal('profileModal');">
+            <img src="${item.image}" alt="${item.name}" onerror="this.src='https://via.placeholder.com/140x100?text=No+Image'">
+            <div class="item-info">
+                <div class="item-name">${item.name}</div>
+                <div class="item-price">${formatPrice(item.price)} ₽</div>
+            </div>
+        </div>
+    `).join('');
+}
+
+function loadUserSettings() {
+    if (currentUser) {
+        document.getElementById('settingsName').value = currentUser.name || '';
+        document.getElementById('settingsEmail').value = currentUser.email || '';
+        document.getElementById('settingsPhone').value = currentUser.phone || '';
+        document.getElementById('settingsAddress').value = currentUser.address || '';
+    }
+}
+
+async function saveUserSettings(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(e.target);
+    const data = {
+        name: formData.get('name'),
+        phone: formData.get('phone'),
+        address: formData.get('address')
+    };
+    
+    // In real app, save to server
+    if (currentUser) {
+        currentUser.name = data.name;
+        currentUser.phone = data.phone;
+        currentUser.address = data.address;
+        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+    }
+    
+    showToast('Настройки сохранены', 'success');
+}
+
+function logout() {
+    authToken = null;
+    currentUser = null;
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('currentUser');
+    updateAuthUI();
+    closeModal('profileModal');
+    showToast('Вы вышли из аккаунта', 'success');
+}
+
+// ============================================
 // MODALS
 // ============================================
 
@@ -804,6 +988,8 @@ function openModal(modalId) {
     
     if (modalId === 'cartModal') {
         renderCart();
+    } else if (modalId === 'wishlistModal') {
+        renderWishlist();
     }
 }
 
@@ -829,3 +1015,11 @@ function showToast(message, type = 'info') {
         toast.classList.remove('show');
     }, 3000);
 }
+
+// Setup profile settings form
+document.addEventListener('DOMContentLoaded', () => {
+    const settingsForm = document.getElementById('profileSettingsForm');
+    if (settingsForm) {
+        settingsForm.addEventListener('submit', saveUserSettings);
+    }
+});
